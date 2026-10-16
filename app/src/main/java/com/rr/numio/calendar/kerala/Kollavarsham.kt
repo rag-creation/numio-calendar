@@ -89,15 +89,16 @@ object Kollavarsham {
 
     /**
      * The day between [from] and [to] in [sign]'s month whose sunrise star is [star], like Thiruvonam in Chingam.
-     * If the star comes twice in the month, the one nearer the full moon wins.
+     * If the star comes twice in the month, the later one wins ([preferLast], as for Onam in 2024),
+     * or else the one nearer the full moon.
      */
-    fun starDay(from: LocalDate, to: LocalDate, sign: Int, star: Int): LocalDate? {
+    fun starDay(from: LocalDate, to: LocalDate, sign: Int, star: Int, preferLast: Boolean = false): LocalDate? {
         val days = mutableListOf<LocalDate>()
         var d = from
         while (!d.isAfter(to)) {
             if (starOfDay(d) == star && signOfDay(d) == sign) days += d
             d = d.plusDays(1)
         }
-        return days.minByOrNull { kotlin.math.abs(tithiOfDay(it) - 15) }
+        return if (preferLast) days.lastOrNull() else days.minByOrNull { kotlin.math.abs(tithiOfDay(it) - 15) }
     }
 }

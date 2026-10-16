@@ -56,7 +56,7 @@ object Festivals {
         add(monthStart(year, 4, k.MEDAM), "Vishu", "Medam 1")
         add(monthStart(year, 7, k.KARKIDAKAM), "Karkidakam 1", "Ramayana month begins")
         add(monthStart(year, 8, k.CHINGAM), "Chingam 1", "Malayalam New Year")
-        val onam = k.starDay(LocalDate.of(year, 8, 1), LocalDate.of(year, 9, 30), k.CHINGAM, k.THIRUVONAM)
+        val onam = k.starDay(LocalDate.of(year, 8, 1), LocalDate.of(year, 9, 30), k.CHINGAM, k.THIRUVONAM, preferLast = true)
         add(onam?.minusDays(1), "Uthradam", "First Onam")
         add(onam, "Thiruvonam", "Onam")
         add(LocalDate.of(year, 11, 1), "Kerala Piravi", "Kerala's birthday")
