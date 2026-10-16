@@ -1,34 +1,18 @@
 package com.rr.numio.calendar.ui
 
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 
-/** Swipe left for [onNext], right for [onPrevious] (one step per swipe). */
-@Composable
-fun Modifier.swipeSideways(onPrevious: () -> Unit, onNext: () -> Unit): Modifier {
-    val prev by rememberUpdatedState(onPrevious)
-    val next by rememberUpdatedState(onNext)
-    val threshold = with(LocalDensity.current) { 56.dp.toPx() }
-    return pointerInput(Unit) {
-        var total = 0f
-        detectHorizontalDragGestures(
-            onDragStart = { total = 0f },
-            onDragEnd = {
-                when {
-                    total < -threshold -> next()
-                    total > threshold -> prev()
-                }
-            },
-            onHorizontalDrag = { change, amount ->
-                total += amount
-                change.consume()
-            }
-        )
-    }
+/** Page numbers for the swipeable month and day views: page 0 is January 2000 / 1 January 2000. */
+object Pages {
+    private val FIRST_MONTH = YearMonth.of(2000, 1)
+    private val FIRST_DAY = LocalDate.of(2000, 1, 1)
+    const val MONTHS = 200 * 12                  // 2000–2199
+    val DAYS = ChronoUnit.DAYS.between(FIRST_DAY, LocalDate.of(2200, 1, 1)).toInt()
+
+    fun ofMonth(m: YearMonth) = ChronoUnit.MONTHS.between(FIRST_MONTH, m).toInt().coerceIn(0, MONTHS - 1)
+    fun month(page: Int): YearMonth = FIRST_MONTH.plusMonths(page.toLong())
+    fun ofDay(d: LocalDate) = ChronoUnit.DAYS.between(FIRST_DAY, d).toInt().coerceIn(0, DAYS - 1)
+    fun day(page: Int): LocalDate = FIRST_DAY.plusDays(page.toLong())
 }

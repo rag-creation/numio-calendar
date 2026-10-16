@@ -27,6 +27,11 @@ import com.rr.numio.calendar.data.sortedForDay
 import com.rr.numio.calendar.hijri.Hijri
 import com.rr.numio.calendar.kerala.Kollavarsham
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -34,6 +39,38 @@ import java.util.Locale
 /** One day: the big date, the Hijri card (if the layer is on), then the day's events. */
 @Composable
 fun DayScreen(
+    day: LocalDate,
+    today: LocalDate,
+    settings: CalendarSettings,
+    events: Map<LocalDate, List<Event>>,
+    onOpenEvent: (Event) -> Unit,
+    onDay: (LocalDate) -> Unit,
+) {
+    // A pager of days: swipe to the next or previous day, it follows your finger.
+    val pager = rememberPagerState(initialPage = Pages.ofDay(day)) { Pages.DAYS }
+    val currentDay = rememberUpdatedState(day)
+    val onDayState = rememberUpdatedState(onDay)
+    LaunchedEffect(day) {
+        val target = Pages.ofDay(day)
+        if (pager.currentPage != target) {
+            if (kotlin.math.abs(pager.currentPage - target) == 1) pager.animateScrollToPage(target)
+            else pager.scrollToPage(target)
+        }
+    }
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.settledPage }.collect { page ->
+            val d = Pages.day(page)
+            if (d != currentDay.value) onDayState.value(d)
+        }
+    }
+    HorizontalPager(state = pager, modifier = Modifier.fillMaxSize(), key = { it }) { page ->
+        val d = Pages.day(page)
+        DayPage(d, today, settings, events[d].orEmpty(), onOpenEvent, onDay)
+    }
+}
+
+@Composable
+private fun DayPage(
     day: LocalDate,
     today: LocalDate,
     settings: CalendarSettings,
@@ -45,7 +82,6 @@ fun DayScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .swipeSideways(onPrevious = { onDay(day.minusDays(1)) }, onNext = { onDay(day.plusDays(1)) })
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)

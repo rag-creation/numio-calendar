@@ -139,7 +139,7 @@ fun CalendarApp() {
                     day = selected,
                     today = today,
                     settings = settings,
-                    events = byDate[selected].orEmpty(),
+                    events = byDate,
                     onOpenEvent = ::openEvent,
                     onDay = { selected = it; month = YearMonth.from(it) }
                 )

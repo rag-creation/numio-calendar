@@ -35,12 +35,11 @@ import com.rr.numio.calendar.kerala.Kollavarsham
 import com.rr.numio.calendar.kerala.MalayalamDate
 import com.rr.numio.calendar.data.Category
 import androidx.compose.runtime.remember
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -69,6 +68,8 @@ fun MonthScreen(
     val locale = Locale.getDefault()
     val hijriOn = settings.hijriLayer
     val adjust = settings.hijriAdjust
+    val currentMonth = rememberUpdatedState(month)
+    val onMonthState = rememberUpdatedState(onMonth)
     val malayalam = remember(month, settings.malayalamLayer) {
         if (settings.malayalamLayer) Kollavarsham.range(month.atDay(1), month.atEndOfMonth()) else emptyMap()
     }
@@ -132,46 +133,55 @@ fun MonthScreen(
         }
 
         // Day grid: the weeks share the free height, so the month fills the screen.
-        // Swipe left/right for the next/previous month; the grid slides the same way.
-        AnimatedContent(
-            targetState = month,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .swipeSideways(onPrevious = { onMonth(month.minusMonths(1)) }, onNext = { onMonth(month.plusMonths(1)) }),
-            transitionSpec = {
-                val forward = targetState > initialState
-                (slideInHorizontally { w -> if (forward) w / 3 else -w / 3 } + fadeIn()) togetherWith
-                        (slideOutHorizontally { w -> if (forward) -w / 3 else w / 3 } + fadeOut())
-            },
-            label = "month"
-        ) { shown ->
-        val shownMalayalam = remember(shown, settings.malayalamLayer) {
-            if (shown == month) malayalam
-            else if (settings.malayalamLayer) Kollavarsham.range(shown.atDay(1), shown.atEndOfMonth()) else emptyMap()
-        }
-        Column(Modifier.fillMaxSize()) {
-            MonthGrid.cells(shown).chunked(7).forEach { week ->
-                Row(Modifier.fillMaxWidth().weight(1f)) {
-                    week.forEach { date ->
-                        Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
-                            if (date != null) {
-                                DayCell(
-                                    date = date,
-                                    malayalam = shownMalayalam[date],
-                                    hijri = if (hijriOn) Hijri.of(date, adjust) else null,
-                                    dots = events[date].orEmpty().sortedForDay().take(3).map { it.category.color() },
-                                    isToday = date == today,
-                                    isSelected = date == selected,
-                                    onClick = { if (date == selected) onOpenDay(date) else onSelect(date) }
-                                )
-                            }
-                        }
-                    }
-                    repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
-                }
+        // The grid is a pager: it follows your finger, and a flick moves to the next/previous month.
+        val pager = rememberPagerState(initialPage = Pages.ofMonth(month)) { Pages.MONTHS }
+        // Arrows and "Today" move the pager…
+        LaunchedEffect(month) {
+            val target = Pages.ofMonth(month)
+            if (pager.currentPage != target) {
+                if (kotlin.math.abs(pager.currentPage - target) == 1) pager.animateScrollToPage(target)
+                else pager.scrollToPage(target)
             }
         }
+        // …and a swipe that settles on a new page changes the month.
+        LaunchedEffect(pager) {
+            snapshotFlow { pager.settledPage }.collect { page ->
+                val m = Pages.month(page)
+                if (m != currentMonth.value) onMonthState.value(m)
+            }
+        }
+        HorizontalPager(
+            state = pager,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            beyondViewportPageCount = 1,
+            key = { it }
+        ) { page ->
+            val shown = Pages.month(page)
+            val shownMalayalam = remember(shown, settings.malayalamLayer) {
+                if (settings.malayalamLayer) Kollavarsham.range(shown.atDay(1), shown.atEndOfMonth()) else emptyMap()
+            }
+            Column(Modifier.fillMaxSize()) {
+                MonthGrid.cells(shown).chunked(7).forEach { week ->
+                    Row(Modifier.fillMaxWidth().weight(1f)) {
+                        week.forEach { date ->
+                            Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
+                                if (date != null) {
+                                    DayCell(
+                                        date = date,
+                                        malayalam = shownMalayalam[date],
+                                        hijri = if (hijriOn) Hijri.of(date, adjust) else null,
+                                        dots = events[date].orEmpty().sortedForDay().take(3).map { it.category.color() },
+                                        isToday = date == today,
+                                        isSelected = date == selected,
+                                        onClick = { if (date == selected) onOpenDay(date) else onSelect(date) }
+                                    )
+                                }
+                            }
+                        }
+                        repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.size(12.dp))
