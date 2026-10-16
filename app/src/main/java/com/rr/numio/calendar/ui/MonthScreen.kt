@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -97,11 +98,13 @@ fun MonthScreen() {
             }
         }
 
-        // Day grid, a week per row
+        // Day grid, a week per row. The rows share the free height, so the month fills the
+        // screen (and has room for the Malayalam / Hijri lines and event dots later).
+        Column(Modifier.fillMaxWidth().weight(1f)) {
         MonthGrid.cells(month).chunked(7).forEach { week ->
-            Row(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().weight(1f)) {
                 week.forEach { date ->
-                    Box(Modifier.weight(1f).height(56.dp), contentAlignment = Alignment.TopCenter) {
+                    Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
                         if (date != null) {
                             DayCell(
                                 date = date,
@@ -115,12 +118,14 @@ fun MonthScreen() {
                 repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
             }
         }
+        }
 
         Spacer(Modifier.size(12.dp))
         SelectedDayCard(selected, today, locale) {
             month = YearMonth.from(today)
             selected = today
         }
+        Spacer(Modifier.size(12.dp))
     }
 }
 
