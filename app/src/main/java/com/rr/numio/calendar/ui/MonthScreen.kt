@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rr.numio.calendar.MonthGrid
 import com.rr.numio.calendar.data.CalendarSettings
+import com.rr.numio.calendar.data.Event
+import com.rr.numio.calendar.data.sortedForDay
 import com.rr.numio.calendar.hijri.Hijri
 import com.rr.numio.calendar.hijri.HijriDate
 import java.time.DayOfWeek
@@ -48,6 +50,8 @@ fun MonthScreen(
     month: YearMonth,
     selected: LocalDate,
     settings: CalendarSettings,
+    events: Map<LocalDate, List<Event>>,
+    onOpenEvent: (Event) -> Unit,
     onMonth: (YearMonth) -> Unit,
     onSelect: (LocalDate) -> Unit,
     onOpenDay: (LocalDate) -> Unit,
@@ -121,6 +125,7 @@ fun MonthScreen(
                                 DayCell(
                                     date = date,
                                     hijri = if (hijriOn) Hijri.of(date, adjust) else null,
+                                    dots = events[date].orEmpty().sortedForDay().take(3).map { it.category.color() },
                                     isToday = date == today,
                                     isSelected = date == selected,
                                     onClick = { if (date == selected) onOpenDay(date) else onSelect(date) }
@@ -134,7 +139,7 @@ fun MonthScreen(
         }
 
         Spacer(Modifier.size(12.dp))
-        SelectedDayCard(selected, today, settings, locale, onOpen = { onOpenDay(selected) }) {
+        SelectedDayCard(selected, today, settings, events[selected].orEmpty().sortedForDay(), locale, onOpenEvent, onOpen = { onOpenDay(selected) }) {
             onMonth(YearMonth.from(today))
             onSelect(today)
         }
@@ -157,6 +162,7 @@ private fun hijriMonthsTitle(month: YearMonth, adjust: Int): String {
 private fun DayCell(
     date: LocalDate,
     hijri: HijriDate?,
+    dots: List<Color>,
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -203,6 +209,11 @@ private fun DayCell(
                 maxLines = 1
             )
         }
+        if (dots.isNotEmpty()) {
+            Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                dots.forEach { c -> Box(Modifier.size(5.dp).clip(CircleShape).background(c)) }
+            }
+        }
     }
 }
 
@@ -211,7 +222,9 @@ private fun SelectedDayCard(
     day: LocalDate,
     today: LocalDate,
     settings: CalendarSettings,
+    dayEvents: List<Event>,
     locale: Locale,
+    onOpenEvent: (Event) -> Unit,
     onOpen: () -> Unit,
     onToday: () -> Unit
 ) {
@@ -251,7 +264,45 @@ private fun SelectedDayCard(
             val h = Hijri.of(day, settings.hijriAdjust)
             Text(text = h.arabic, color = HijriGreen, fontSize = 15.sp)
         }
-        Text(text = "No events yet", color = NumioMuted, fontSize = 14.sp)
+        if (dayEvents.isEmpty()) {
+            Text(text = "No events · tap + to add one", color = NumioMuted, fontSize = 14.sp)
+        } else {
+            dayEvents.take(3).forEach { e -> EventRow(e) { onOpenEvent(e) } }
+            if (dayEvents.size > 3) {
+                Text("+${dayEvents.size - 3} more", color = NumioMuted, fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+/** One event line: colour bar, title, time. Used in the Today card and on the Day screen. */
+@Composable
+fun EventRow(e: Event, big: Boolean = false, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(end = 64.dp) // keep clear of the + button
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(role = Role.Button, onClickLabel = "Edit") { onClick() }
+            .padding(vertical = if (big) 10.dp else 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(width = 4.dp, height = if (big) 40.dp else 32.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(e.category.color())
+        )
+        Spacer(Modifier.size(12.dp))
+        Column {
+            Text(e.title, color = NumioText, fontSize = if (big) 16.sp else 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(
+                e.timeText() + " · " + e.category.label,
+                color = NumioMuted,
+                fontSize = 12.sp,
+                maxLines = 1
+            )
+        }
     }
 }
 

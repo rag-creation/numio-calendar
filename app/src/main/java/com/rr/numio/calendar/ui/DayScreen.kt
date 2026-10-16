@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rr.numio.calendar.data.CalendarSettings
+import com.rr.numio.calendar.data.Event
+import com.rr.numio.calendar.data.sortedForDay
 import com.rr.numio.calendar.hijri.Hijri
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -29,7 +31,14 @@ import java.util.Locale
 
 /** One day: the big date, the Hijri card (if the layer is on), then the day's events. */
 @Composable
-fun DayScreen(day: LocalDate, today: LocalDate, settings: CalendarSettings, onDay: (LocalDate) -> Unit) {
+fun DayScreen(
+    day: LocalDate,
+    today: LocalDate,
+    settings: CalendarSettings,
+    events: List<Event>,
+    onOpenEvent: (Event) -> Unit,
+    onDay: (LocalDate) -> Unit,
+) {
     val locale = Locale.getDefault()
     Column(
         modifier = Modifier
@@ -109,6 +118,13 @@ fun DayScreen(day: LocalDate, today: LocalDate, settings: CalendarSettings, onDa
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp
         )
-        Text("No events yet", color = NumioMuted, fontSize = 15.sp)
+        if (events.isEmpty()) {
+            Text("No events · tap + to add one", color = NumioMuted, fontSize = 15.sp)
+        } else {
+            Column {
+                events.sortedForDay().forEach { e -> EventRow(e, big = true) { onOpenEvent(e) } }
+            }
+        }
+        Spacer(Modifier.size(80.dp)) // room to scroll past the + button
     }
 }

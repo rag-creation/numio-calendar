@@ -34,6 +34,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rr.numio.calendar.data.CalendarSettings
+import com.rr.numio.calendar.data.Event
+import com.rr.numio.calendar.data.EventStore
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -52,6 +57,23 @@ fun CalendarApp() {
     var month by remember { mutableStateOf(YearMonth.from(today)) }
     var selected by remember { mutableStateOf(today) }
     var settings by remember { mutableStateOf(CalendarSettings.load(context)) }
+    var events by remember { mutableStateOf(EventStore.load(context)) }
+    var editing by remember { mutableStateOf<Event?>(null) }   // the event in the editor
+    var editingIsNew by remember { mutableStateOf(false) }
+    val byDate = remember(events) { events.groupBy { it.date } }
+
+    fun saveEvents(list: List<Event>) {
+        events = list
+        EventStore.save(context, list)
+    }
+    fun newEvent(on: java.time.LocalDate) {
+        editing = Event(id = System.currentTimeMillis(), title = "", date = on)
+        editingIsNew = true
+    }
+    fun openEvent(e: Event) {
+        editing = e
+        editingIsNew = false
+    }
 
     fun update(s: CalendarSettings) {
         settings = s
@@ -71,6 +93,8 @@ fun CalendarApp() {
                     month = month,
                     selected = selected,
                     settings = settings,
+                    events = byDate,
+                    onOpenEvent = ::openEvent,
                     onMonth = { month = it },
                     onSelect = { selected = it },
                     onOpenDay = { selected = it; tab = Tab.Day }
@@ -79,12 +103,47 @@ fun CalendarApp() {
                     day = selected,
                     today = today,
                     settings = settings,
+                    events = byDate[selected].orEmpty(),
+                    onOpenEvent = ::openEvent,
                     onDay = { selected = it; month = YearMonth.from(it) }
                 )
                 Tab.Settings -> SettingsScreen(settings, ::update)
             }
+            // The yellow + : a new event on the selected day.
+            if (tab != Tab.Settings) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 20.dp)
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(NumioYellow)
+                        .clickable(role = Role.Button, onClickLabel = "New event") { newEvent(selected) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "New event", tint = NumioInk, modifier = Modifier.size(30.dp))
+                }
+            }
         }
         BottomBar(tab) { tab = it }
+    }
+
+    editing?.let { e ->
+        EventEditor(
+            event = e,
+            isNew = editingIsNew,
+            onSave = { saved ->
+                saveEvents(events.filter { it.id != saved.id } + saved)
+                selected = saved.date
+                month = YearMonth.from(saved.date)
+                editing = null
+            },
+            onDelete = {
+                saveEvents(events.filter { it.id != e.id })
+                editing = null
+            },
+            onClose = { editing = null }
+        )
     }
 }
 
