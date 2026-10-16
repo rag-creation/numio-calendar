@@ -41,7 +41,15 @@ jobs:
           DEBUG_SIGN_FALLBACK: "1"
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon testDebugUnitTest assembleRelease
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
+
+      # If the build breaks, show the compiler errors and failed tests as annotations on the run.
+      - name: Report errors
+        if: failure()
+        run: |
+          grep -E "^e: " build.log | head -20 | while read -r line; do echo "::error::$line"; done
+          grep -E "FAILED|^\s+(java|org\.junit)\.[A-Za-z.]*(Error|Exception)" build.log | head -30 | while read -r line; do echo "::error::$line"; done
 
       - name: Name the APK
         run: |
