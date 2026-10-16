@@ -35,6 +35,12 @@ import com.rr.numio.calendar.kerala.Kollavarsham
 import com.rr.numio.calendar.kerala.MalayalamDate
 import com.rr.numio.calendar.data.Category
 import androidx.compose.runtime.remember
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -126,15 +132,33 @@ fun MonthScreen(
         }
 
         // Day grid: the weeks share the free height, so the month fills the screen.
-        Column(Modifier.fillMaxWidth().weight(1f)) {
-            MonthGrid.cells(month).chunked(7).forEach { week ->
+        // Swipe left/right for the next/previous month; the grid slides the same way.
+        AnimatedContent(
+            targetState = month,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .swipeSideways(onPrevious = { onMonth(month.minusMonths(1)) }, onNext = { onMonth(month.plusMonths(1)) }),
+            transitionSpec = {
+                val forward = targetState > initialState
+                (slideInHorizontally { w -> if (forward) w / 3 else -w / 3 } + fadeIn()) togetherWith
+                        (slideOutHorizontally { w -> if (forward) -w / 3 else w / 3 } + fadeOut())
+            },
+            label = "month"
+        ) { shown ->
+        val shownMalayalam = remember(shown, settings.malayalamLayer) {
+            if (shown == month) malayalam
+            else if (settings.malayalamLayer) Kollavarsham.range(shown.atDay(1), shown.atEndOfMonth()) else emptyMap()
+        }
+        Column(Modifier.fillMaxSize()) {
+            MonthGrid.cells(shown).chunked(7).forEach { week ->
                 Row(Modifier.fillMaxWidth().weight(1f)) {
                     week.forEach { date ->
                         Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
                             if (date != null) {
                                 DayCell(
                                     date = date,
-                                    malayalam = malayalam[date],
+                                    malayalam = shownMalayalam[date],
                                     hijri = if (hijriOn) Hijri.of(date, adjust) else null,
                                     dots = events[date].orEmpty().sortedForDay().take(3).map { it.category.color() },
                                     isToday = date == today,
@@ -147,6 +171,7 @@ fun MonthScreen(
                     repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
+        }
         }
 
         Spacer(Modifier.size(12.dp))

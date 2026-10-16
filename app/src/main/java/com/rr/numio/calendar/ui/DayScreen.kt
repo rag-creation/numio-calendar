@@ -45,6 +45,7 @@ fun DayScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .swipeSideways(onPrevious = { onDay(day.minusDays(1)) }, onNext = { onDay(day.plusDays(1)) })
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
