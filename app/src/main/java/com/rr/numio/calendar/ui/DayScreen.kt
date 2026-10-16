@@ -25,6 +25,8 @@ import com.rr.numio.calendar.data.CalendarSettings
 import com.rr.numio.calendar.data.Event
 import com.rr.numio.calendar.data.sortedForDay
 import com.rr.numio.calendar.hijri.Hijri
+import com.rr.numio.calendar.kerala.Kollavarsham
+import androidx.compose.runtime.remember
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -77,6 +79,38 @@ fun DayScreen(
                     fontWeight = FontWeight.Bold
                 )
                 if (day == today) Text("Today", color = NumioMuted, fontSize = 14.sp)
+            }
+        }
+
+        if (settings.malayalamLayer) {
+            val m = remember(day) { Kollavarsham.of(day) }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFF261F12))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "KOLLAVARSHAM",
+                        color = MalayalamDim,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text("Star at sunrise", color = MalayalamDim, fontSize = 12.sp)
+                }
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(m.malayalam, color = MalayalamGold, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Text(m.starMl, color = MalayalamGold, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Row {
+                    Text(m.english, color = Color(0xFFC9AE80), fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    Text(m.starEn, color = Color(0xFFC9AE80), fontSize = 14.sp)
+                }
             }
         }
 

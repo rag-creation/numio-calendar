@@ -19,6 +19,9 @@ val NumioSunday = Color(0xFFF07A6A)   // Sundays and holidays
 val EventPersonal = NumioYellow
 val EventWork = Color(0xFF3CC4B4)
 val EventGoogle = Color(0xFF5B9BF0)
+val EventFestival = Color(0xFFF29B4B)
+val MalayalamGold = Color(0xFFE3B15E)
+val MalayalamDim = Color(0xFFA88A55)
 val EventPrivate = Color(0xFFB08CF0)
 
 private val scheme = darkColorScheme(

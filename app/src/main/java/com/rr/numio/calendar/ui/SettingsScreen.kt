@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rr.numio.calendar.data.CalendarSettings
 import com.rr.numio.calendar.data.PhoneCalendar
+import com.rr.numio.calendar.data.FestivalGroup
+import com.rr.numio.calendar.kerala.Kollavarsham
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -70,6 +72,39 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onChang
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text("Settings", color = NumioText, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+
+        SectionLabel("MALAYALAM CALENDAR")
+        Card {
+            ToggleRow(
+                title = "Malayalam layer",
+                text = "Kollavarsham date under each day, and the day's star (nakshatram). Worked out on the phone for Kerala.",
+                checked = settings.malayalamLayer,
+                onChange = { onChange(settings.copy(malayalamLayer = it)) }
+            )
+            if (settings.malayalamLayer) {
+                val m = Kollavarsham.of(LocalDate.now())
+                Text(
+                    "Today: " + m.malayalam + " · " + m.starMl,
+                    color = MalayalamGold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
+        }
+
+        SectionLabel("FESTIVALS")
+        Card {
+            FestivalGroup.entries.forEach { g ->
+                ToggleRow(
+                    title = g.label,
+                    text = festivalExamples(g),
+                    checked = g in settings.festivals,
+                    onChange = { on ->
+                        onChange(settings.copy(festivals = if (on) settings.festivals + g else settings.festivals - g))
+                    }
+                )
+            }
+        }
 
         SectionLabel("PHONE CALENDARS")
         Column(
@@ -212,4 +247,44 @@ private fun SectionLabel(text: String) {
         letterSpacing = 1.sp,
         modifier = Modifier.padding(start = 4.dp, top = 4.dp)
     )
+}
+
+private fun festivalExamples(g: FestivalGroup) = when (g) {
+    FestivalGroup.Kerala -> "Onam, Vishu, Thiruvathira, Makaravilakku, Chingam 1"
+    FestivalGroup.India -> "Republic Day, Independence Day, Gandhi Jayanti"
+    FestivalGroup.Christian -> "Christmas, Easter, Good Friday, Pesaha"
+    FestivalGroup.Islamic -> "Eid al-Fitr, Eid al-Adha, Ramadan, Milad-un-Nabi (expected dates)"
+    FestivalGroup.Uae -> "UAE National Day, Commemoration Day"
+}
+
+@Composable
+private fun Card(content: @Composable () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(NumioCard)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+    ) { content() }
+}
+
+@Composable
+private fun ToggleRow(title: String, text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(text, color = NumioMuted, fontSize = 13.sp)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            colors = SwitchDefaults.colors(checkedThumbColor = NumioInk, checkedTrackColor = NumioYellow)
+        )
+    }
 }

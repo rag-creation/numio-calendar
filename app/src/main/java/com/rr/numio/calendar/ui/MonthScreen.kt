@@ -31,6 +31,10 @@ import com.rr.numio.calendar.data.Event
 import com.rr.numio.calendar.data.sortedForDay
 import com.rr.numio.calendar.hijri.Hijri
 import com.rr.numio.calendar.hijri.HijriDate
+import com.rr.numio.calendar.kerala.Kollavarsham
+import com.rr.numio.calendar.kerala.MalayalamDate
+import com.rr.numio.calendar.data.Category
+import androidx.compose.runtime.remember
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -59,6 +63,9 @@ fun MonthScreen(
     val locale = Locale.getDefault()
     val hijriOn = settings.hijriLayer
     val adjust = settings.hijriAdjust
+    val malayalam = remember(month, settings.malayalamLayer) {
+        if (settings.malayalamLayer) Kollavarsham.range(month.atDay(1), month.atEndOfMonth()) else emptyMap()
+    }
 
     Column(
         modifier = Modifier
@@ -87,6 +94,9 @@ fun MonthScreen(
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
+                }
+                if (malayalam.isNotEmpty()) {
+                    Text(text = malayalamMonthsTitle(malayalam.values), color = MalayalamGold, fontSize = 14.sp)
                 }
                 if (hijriOn) {
                     Text(
@@ -124,6 +134,7 @@ fun MonthScreen(
                             if (date != null) {
                                 DayCell(
                                     date = date,
+                                    malayalam = malayalam[date],
                                     hijri = if (hijriOn) Hijri.of(date, adjust) else null,
                                     dots = events[date].orEmpty().sortedForDay().take(3).map { it.category.color() },
                                     isToday = date == today,
@@ -147,6 +158,17 @@ fun MonthScreen(
     }
 }
 
+/** "കന്നി – തുലാം 1202": the Malayalam months this Gregorian month covers. */
+private fun malayalamMonthsTitle(days: Collection<MalayalamDate>): String {
+    val first = days.first()
+    val last = days.last()
+    return when {
+        first.sign == last.sign -> "${first.monthMl} ${first.year}"
+        first.year == last.year -> "${first.monthMl} – ${last.monthMl} ${last.year}"
+        else -> "${first.monthMl} ${first.year} – ${last.monthMl} ${last.year}"
+    }
+}
+
 /** "Rabi' al-Akhir – Jumada al-Ula 1448": the Hijri months this Gregorian month covers. */
 private fun hijriMonthsTitle(month: YearMonth, adjust: Int): String {
     val first = Hijri.of(month.atDay(1), adjust)
@@ -161,6 +183,7 @@ private fun hijriMonthsTitle(month: YearMonth, adjust: Int): String {
 @Composable
 private fun DayCell(
     date: LocalDate,
+    malayalam: MalayalamDate?,
     hijri: HijriDate?,
     dots: List<Color>,
     isToday: Boolean,
@@ -198,6 +221,15 @@ private fun DayCell(
                 color = textColor,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
+            )
+        }
+        if (malayalam != null) {
+            // The 1st of a Malayalam month shows the month's name, other days just the number.
+            Text(
+                text = if (malayalam.day == 1) malayalam.monthMl else malayalam.day.toString(),
+                color = if (malayalam.day == 1) MalayalamGold else MalayalamDim,
+                fontSize = 11.sp,
+                maxLines = 1
             )
         }
         if (hijri != null) {
@@ -260,6 +292,10 @@ private fun SelectedDayCard(
                 )
             }
         }
+        if (settings.malayalamLayer) {
+            val m = remember(day) { Kollavarsham.of(day) }
+            Text(text = m.malayalam + " · " + m.starMl, color = MalayalamGold, fontSize = 15.sp)
+        }
         if (settings.hijriLayer) {
             val h = Hijri.of(day, settings.hijriAdjust)
             Text(text = h.arabic, color = HijriGreen, fontSize = 15.sp)
@@ -297,7 +333,11 @@ fun EventRow(e: Event, big: Boolean = false, onClick: () -> Unit) {
         Column {
             Text(e.title, color = NumioText, fontSize = if (big) 16.sp else 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             Text(
-                e.timeText() + " · " + e.category.label,
+                e.timeText() + " · " + when {
+                    e.category == Category.Festival -> e.note.ifEmpty { "Festival" }
+                    e.external && e.calendarName.isNotEmpty() -> e.calendarName
+                    else -> e.category.label
+                },
                 color = NumioMuted,
                 fontSize = 12.sp,
                 maxLines = 1

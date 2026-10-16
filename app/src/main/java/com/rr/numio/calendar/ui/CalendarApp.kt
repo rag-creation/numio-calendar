@@ -37,6 +37,8 @@ import com.rr.numio.calendar.data.CalendarSettings
 import com.rr.numio.calendar.data.Event
 import com.rr.numio.calendar.data.EventStore
 import com.rr.numio.calendar.data.PhoneCalendar
+import com.rr.numio.calendar.data.Festivals
+import com.rr.numio.calendar.data.Category
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -69,7 +71,22 @@ fun CalendarApp() {
     var phoneEvents by remember { mutableStateOf(emptyList<Event>()) }
     var phoneVersion by remember { mutableStateOf(0) }            // bump to re-read after permission
     var showingPhoneEvent by remember { mutableStateOf<Event?>(null) }
-    val byDate = remember(events, phoneEvents) { (events + phoneEvents).groupBy { it.date } }
+    var festivalEvents by remember { mutableStateOf(emptyList<Event>()) }
+    val festivalCache = remember { HashMap<String, List<Event>>() }
+    val byDate = remember(events, phoneEvents, festivalEvents) {
+        (events + phoneEvents + festivalEvents).groupBy { it.date }
+    }
+
+    // Festivals: worked out per year in the background, then kept.
+    LaunchedEffect(month, settings.festivals, settings.hijriAdjust) {
+        val years = listOf(month.atDay(1).minusDays(7).year, month.atEndOfMonth().plusDays(7).year).distinct()
+        festivalEvents = withContext(Dispatchers.Default) {
+            years.flatMap { y ->
+                val key = "$y/${settings.festivals.sorted()}/${settings.hijriAdjust}"
+                festivalCache.getOrPut(key) { Festivals.forYear(y, settings.festivals, settings.hijriAdjust) }
+            }
+        }
+    }
 
     // Phone calendars: read the shown month (plus a week either side) in the background.
     LaunchedEffect(month, settings.phoneCalendars, phoneVersion) {
@@ -154,11 +171,13 @@ fun CalendarApp() {
             title = { Text(e.title, color = NumioText) },
             text = {
                 Column {
-                    Text(e.timeText(), color = EventGoogle, fontSize = 15.sp)
-                    if (e.calendarName.isNotEmpty()) Text("From " + e.calendarName, color = NumioMuted, fontSize = 13.sp)
+                    Text(e.date.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")) + " · " + e.timeText(), color = e.category.color(), fontSize = 15.sp)
+                    val festival = e.category == Category.Festival
+                    if (!festival && e.calendarName.isNotEmpty()) Text("From " + e.calendarName, color = NumioMuted, fontSize = 13.sp)
                     if (e.note.isNotBlank()) Text(e.note, color = NumioText, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
                     Text(
-                        "From your phone's calendars. Edit it in the app it came from.",
+                        if (festival) "Worked out on your phone, no internet. You can choose which festivals show in Settings."
+                        else "From your phone's calendars. Edit it in the app it came from.",
                         color = NumioMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp)
                     )
                 }

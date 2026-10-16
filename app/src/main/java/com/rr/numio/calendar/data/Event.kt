@@ -10,7 +10,8 @@ import java.time.LocalTime
 enum class Category(val id: String, val label: String) {
     Personal("personal", "Personal"),
     Work("work", "Work"),
-    Phone("phone", "Phone calendar");   // events read from the phone's calendars (read-only)
+    Phone("phone", "Phone calendar"),   // events read from the phone's calendars (read-only)
+    Festival("festival", "Festival");   // worked out by the app (read-only)
 
     companion object {
         fun byId(id: String?): Category = entries.firstOrNull { it.id == id } ?: Personal

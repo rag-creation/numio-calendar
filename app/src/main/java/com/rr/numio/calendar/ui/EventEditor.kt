@@ -63,6 +63,7 @@ fun Category.color(): Color = when (this) {
     Category.Personal -> EventPersonal
     Category.Work -> EventWork
     Category.Phone -> EventGoogle
+    Category.Festival -> EventFestival
 }
 
 val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
@@ -200,7 +201,7 @@ fun EventEditor(
 
                 Text("TYPE", color = NumioMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Category.entries.filter { it != Category.Phone }.forEach { c ->
+                    listOf(Category.Personal, Category.Work).forEach { c ->
                         val on = c == category
                         Row(
                             Modifier
