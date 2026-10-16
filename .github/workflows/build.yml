@@ -1,0 +1,77 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Release signing: only used when the NUMIO_KEYSTORE_BASE64 secret exists.
+      # Without it the APK is signed with the runner's throwaway debug key (fine for testing).
+      - name: Load signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.NUMIO_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/numio.jks"
+            echo "NUMIO_KEYSTORE_PATH=$RUNNER_TEMP/numio.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build release APK
+        env:
+          NUMIO_KEYSTORE_PASSWORD: ${{ secrets.NUMIO_KEYSTORE_PASSWORD }}
+          NUMIO_KEY_ALIAS: ${{ secrets.NUMIO_KEY_ALIAS }}
+          NUMIO_KEY_PASSWORD: ${{ secrets.NUMIO_KEY_PASSWORD }}
+          DEBUG_SIGN_FALLBACK: "1"
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease
+
+      - name: Name the APK
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            NAME="Calendar-${GITHUB_REF_NAME}.apk"
+          else
+            NAME="Calendar-test.apk"
+          fi
+          cp app/build/outputs/apk/release/app-release*.apk "$NAME"
+          echo "APK_NAME=$NAME" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}
+          path: ${{ env.APK_NAME }}
+
+      # Every push to main refreshes one "Test build" DRAFT release you can open on your phone.
+      # A draft has no git tag, so F-Droid's update check (UpdateCheckMode: Tags) never sees it.
+      - name: Publish test build (draft)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in $(gh api repos/$GITHUB_REPOSITORY/releases --jq '.[] | select(.draft and .name == "Test build") | .id'); do
+            gh api -X DELETE repos/$GITHUB_REPOSITORY/releases/$id
+          done
+          gh release create "test-${GITHUB_SHA::7}" "$APK_NAME" --draft \
+            --target "$GITHUB_SHA" \
+            --title "Test build" \
+            --notes "Latest build from main (${GITHUB_SHA::7}). For testing only."
+
+      # Tagged releases (v*) are not published from here: the Numio signing key is
+      # kept off GitHub, so the release APK is built and signed by hand on the Mac.
