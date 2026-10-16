@@ -28,11 +28,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rr.numio.calendar.data.CalendarSettings
+import com.rr.numio.calendar.data.PhoneCalendar
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import com.rr.numio.calendar.hijri.Hijri
 import java.time.LocalDate
 
 @Composable
-fun SettingsScreen(settings: CalendarSettings, onChange: (CalendarSettings) -> Unit) {
+fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onChange: (CalendarSettings) -> Unit) {
+    val context = LocalContext.current
+    var denied by remember { mutableStateOf(false) }
+    val askCalendar = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        denied = !granted
+        if (granted) {
+            onChange(settings.copy(phoneCalendars = true))
+            onPermission()
+        }
+    }
+    fun setPhoneCalendars(on: Boolean) {
+        if (!on) { onChange(settings.copy(phoneCalendars = false)); return }
+        if (PhoneCalendar.hasPermission(context)) {
+            onChange(settings.copy(phoneCalendars = true))
+            onPermission()
+        } else {
+            askCalendar.launch(Manifest.permission.READ_CALENDAR)
+        }
+    }
+    val phoneOn = settings.phoneCalendars && PhoneCalendar.hasPermission(context)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -41,6 +70,45 @@ fun SettingsScreen(settings: CalendarSettings, onChange: (CalendarSettings) -> U
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text("Settings", color = NumioText, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+
+        SectionLabel("PHONE CALENDARS")
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(NumioCard)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(value = phoneOn, role = Role.Switch, onValueChange = ::setPhoneCalendars)
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Show phone calendars", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Events from the calendars on this phone, like Google or Samsung, in blue. Read-only: Calendar never changes them.",
+                        color = NumioMuted,
+                        fontSize = 13.sp
+                    )
+                }
+                Switch(
+                    checked = phoneOn,
+                    onCheckedChange = null,
+                    colors = SwitchDefaults.colors(checkedThumbColor = NumioInk, checkedTrackColor = NumioYellow)
+                )
+            }
+            if (denied) {
+                Text(
+                    "Calendar permission was not given. You can allow it in Android Settings → Apps → Calendar → Permissions.",
+                    color = NumioSunday,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
+        }
 
         SectionLabel("HIJRI CALENDAR")
         Column(

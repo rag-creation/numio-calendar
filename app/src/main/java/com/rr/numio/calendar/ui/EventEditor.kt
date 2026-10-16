@@ -62,6 +62,7 @@ import java.time.format.FormatStyle
 fun Category.color(): Color = when (this) {
     Category.Personal -> EventPersonal
     Category.Work -> EventWork
+    Category.Phone -> EventGoogle
 }
 
 val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
@@ -199,7 +200,7 @@ fun EventEditor(
 
                 Text("TYPE", color = NumioMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Category.entries.forEach { c ->
+                    Category.entries.filter { it != Category.Phone }.forEach { c ->
                         val on = c == category
                         Row(
                             Modifier

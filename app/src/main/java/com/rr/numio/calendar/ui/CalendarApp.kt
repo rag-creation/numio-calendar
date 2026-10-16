@@ -36,6 +36,12 @@ import androidx.compose.ui.unit.sp
 import com.rr.numio.calendar.data.CalendarSettings
 import com.rr.numio.calendar.data.Event
 import com.rr.numio.calendar.data.EventStore
+import com.rr.numio.calendar.data.PhoneCalendar
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -60,7 +66,19 @@ fun CalendarApp() {
     var events by remember { mutableStateOf(EventStore.load(context)) }
     var editing by remember { mutableStateOf<Event?>(null) }   // the event in the editor
     var editingIsNew by remember { mutableStateOf(false) }
-    val byDate = remember(events) { events.groupBy { it.date } }
+    var phoneEvents by remember { mutableStateOf(emptyList<Event>()) }
+    var phoneVersion by remember { mutableStateOf(0) }            // bump to re-read after permission
+    var showingPhoneEvent by remember { mutableStateOf<Event?>(null) }
+    val byDate = remember(events, phoneEvents) { (events + phoneEvents).groupBy { it.date } }
+
+    // Phone calendars: read the shown month (plus a week either side) in the background.
+    LaunchedEffect(month, settings.phoneCalendars, phoneVersion) {
+        phoneEvents = if (settings.phoneCalendars) {
+            withContext(Dispatchers.IO) {
+                PhoneCalendar.events(context, month.atDay(1).minusDays(7), month.atEndOfMonth().plusDays(7))
+            }
+        } else emptyList()
+    }
 
     fun saveEvents(list: List<Event>) {
         events = list
@@ -71,6 +89,7 @@ fun CalendarApp() {
         editingIsNew = true
     }
     fun openEvent(e: Event) {
+        if (e.external) { showingPhoneEvent = e; return }
         editing = e
         editingIsNew = false
     }
@@ -107,7 +126,7 @@ fun CalendarApp() {
                     onOpenEvent = ::openEvent,
                     onDay = { selected = it; month = YearMonth.from(it) }
                 )
-                Tab.Settings -> SettingsScreen(settings, ::update)
+                Tab.Settings -> SettingsScreen(settings, onPermission = { phoneVersion++ }, onChange = ::update)
             }
             // The yellow + : a new event on the selected day.
             if (tab != Tab.Settings) {
@@ -126,6 +145,26 @@ fun CalendarApp() {
             }
         }
         BottomBar(tab) { tab = it }
+    }
+
+    showingPhoneEvent?.let { e ->
+        AlertDialog(
+            onDismissRequest = { showingPhoneEvent = null },
+            containerColor = NumioCard,
+            title = { Text(e.title, color = NumioText) },
+            text = {
+                Column {
+                    Text(e.timeText(), color = EventGoogle, fontSize = 15.sp)
+                    if (e.calendarName.isNotEmpty()) Text("From " + e.calendarName, color = NumioMuted, fontSize = 13.sp)
+                    if (e.note.isNotBlank()) Text(e.note, color = NumioText, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+                    Text(
+                        "From your phone's calendars. Edit it in the app it came from.",
+                        color = NumioMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp)
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { showingPhoneEvent = null }) { Text("OK", color = NumioYellow) } }
+        )
     }
 
     editing?.let { e ->

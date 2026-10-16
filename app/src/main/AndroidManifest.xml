@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- No INTERNET permission: Calendar by Numio never goes online. -->
+    <!-- Optional: shows events from the phone's calendars (Google, Samsung…). Asked only when
+         "Phone calendars" is turned on in Settings. Read-only: nothing is ever written. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <application
         android:allowBackup="true"

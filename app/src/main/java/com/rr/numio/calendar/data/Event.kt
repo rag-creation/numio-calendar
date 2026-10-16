@@ -9,7 +9,8 @@ import java.time.LocalTime
 
 enum class Category(val id: String, val label: String) {
     Personal("personal", "Personal"),
-    Work("work", "Work");
+    Work("work", "Work"),
+    Phone("phone", "Phone calendar");   // events read from the phone's calendars (read-only)
 
     companion object {
         fun byId(id: String?): Category = entries.firstOrNull { it.id == id } ?: Personal
@@ -25,6 +26,8 @@ data class Event(
     val end: LocalTime? = null,
     val category: Category = Category.Personal,
     val note: String = "",
+    val external: Boolean = false,      // from the phone's calendars: shown, never changed
+    val calendarName: String = "",
 ) {
     val allDay: Boolean get() = start == null
 }
