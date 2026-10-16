@@ -3,7 +3,7 @@ package com.rr.numio.calendar
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.rr.numio.calendar.ui.MonthScreen
+import com.rr.numio.calendar.ui.CalendarApp
 import com.rr.numio.calendar.ui.NumioCalendarTheme
 
 class MainActivity : ComponentActivity() {
@@ -11,7 +11,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             NumioCalendarTheme {
-                MonthScreen()
+                CalendarApp()
             }
         }
     }
