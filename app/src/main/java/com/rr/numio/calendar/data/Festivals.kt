@@ -22,9 +22,9 @@ enum class FestivalGroup(val id: String, val label: String, val defaultOn: Boole
 object Festivals {
 
     fun forYear(year: Int, groups: Set<FestivalGroup>, hijriAdjust: Int): List<Event> {
-        val list = mutableListOf<Pair<LocalDate, Pair<String, String>>>() // date, (title, note)
+        val list = mutableListOf<Triple<LocalDate, Pair<String, String>, FestivalGroup>>() // date, (title, note), group
         fun add(g: FestivalGroup, d: LocalDate?, title: String, note: String = "") {
-            if (d != null && d.year == year && g in groups) list += d to (title to note)
+            if (d != null && d.year == year && g in groups) list += Triple(d, title to note, g)
         }
         if (FestivalGroup.Kerala in groups) kerala(year).forEach { (d, t) -> add(FestivalGroup.Kerala, d, t.first, t.second) }
         if (FestivalGroup.India in groups) india(year).forEach { (d, t) -> add(FestivalGroup.India, d, t) }
@@ -33,7 +33,7 @@ object Festivals {
         if (FestivalGroup.Islamic in groups) islamic(year, hijriAdjust).forEach { (d, t) ->
             add(FestivalGroup.Islamic, d, t, "Expected date. The actual day depends on the moon being sighted.")
         }
-        return list.mapIndexed { i, (d, t) ->
+        return list.mapIndexed { i, (d, t, g) ->
             Event(
                 id = -(5_000_000_000L + d.toEpochDay() * 100 + i),
                 title = t.first,
@@ -41,7 +41,7 @@ object Festivals {
                 category = Category.Festival,
                 note = t.second,
                 external = true,
-                calendarName = "Festival",
+                calendarName = g.id, // which group, for its colour
             )
         }
     }
