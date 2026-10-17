@@ -137,6 +137,9 @@ fun MonthScreen(
             ArrowButton(left = false, label = "Next month") { onMonth(month.plusMonths(1)) }
         }
 
+        // Countdown to the next big festivals
+        CountdownRow(today, settings) { d -> onMonth(YearMonth.from(d)); onSelect(d) }
+
         // Weekday row
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             MonthGrid.weekdays().forEach { day ->
