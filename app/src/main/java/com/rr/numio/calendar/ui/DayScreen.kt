@@ -148,6 +148,17 @@ private fun DayPage(
                     Text(m.english, color = Color(0xFFC9AE80), fontSize = 14.sp, modifier = Modifier.weight(1f))
                     Text(m.starEn, color = Color(0xFFC9AE80), fontSize = 14.sp)
                 }
+                val ends = remember(day) {
+                    Kollavarsham.starEnds(day).atZone(java.time.ZoneId.systemDefault())
+                }
+                Text(
+                    "${m.starEn} until " + ends.toLocalTime().format(timeFormat) +
+                        (if (ends.toLocalDate() != day) ", " + ends.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM")) else ""),
+                    color = MalayalamDim,
+                    fontSize = 13.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
             }
         }
 

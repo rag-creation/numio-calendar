@@ -368,7 +368,7 @@ fun EventRow(e: Event, big: Boolean = false, onClick: () -> Unit) {
         Column {
             Text(e.title, color = NumioText, fontSize = if (big) 16.sp else 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             Text(
-                e.timeText() + " · " + when {
+                e.timeText() + (if (e.repeat.repeats) " · ↻" else "") + (if (e.reminder >= 0) " · 🔔" else "") + " · " + when {
                     e.category == Category.Festival -> e.note.ifEmpty { "Festival" }
                     e.external && e.calendarName.isNotEmpty() -> e.calendarName
                     else -> e.category.label

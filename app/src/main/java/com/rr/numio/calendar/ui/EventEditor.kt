@@ -52,6 +52,17 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.rr.numio.calendar.data.Category
 import com.rr.numio.calendar.data.Event
+import com.rr.numio.calendar.data.Repeat
+import com.rr.numio.calendar.data.RepeatKind
+import com.rr.numio.calendar.hijri.Hijri
+import com.rr.numio.calendar.hijri.HijriDate
+import com.rr.numio.calendar.kerala.Kollavarsham
+import com.rr.numio.calendar.remind.Reminders
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -76,6 +87,26 @@ fun Event.timeText(): String = when {
     else -> start.format(timeFormat) + " – " + end.format(timeFormat)
 }
 
+/** "Every year: Thiruvonam in Thulam" and so on. */
+fun repeatLabel(r: Repeat, date: LocalDate): String = when (r.kind) {
+    RepeatKind.None -> "Does not repeat"
+    RepeatKind.Weekly -> "Every " + date.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())
+    RepeatKind.Monthly -> "Every month on the ${date.dayOfMonth}"
+    RepeatKind.Yearly -> "Every year on " + date.format(DateTimeFormatter.ofPattern("d MMMM"))
+    RepeatKind.Star -> "Every year: ${Kollavarsham.STARS_EN[r.day]} in ${Kollavarsham.MONTHS_EN[r.month]}"
+    RepeatKind.Malayalam -> "Every year: ${Kollavarsham.MONTHS_EN[r.month]} ${r.day}"
+    RepeatKind.Hijri -> "Every year: ${r.day} ${HijriDate.MONTHS_EN[r.month - 1]}"
+}
+
+private val timedReminders = listOf(-1 to "No reminder", 0 to "At the time", 10 to "10 minutes before",
+    30 to "30 minutes before", 60 to "1 hour before", 1440 to "1 day before")
+private val allDayReminders = listOf(-1 to "No reminder", 0 to "On the day, 9:00 AM",
+    1440 to "Day before, 9:00 AM", 10080 to "Week before, 9:00 AM")
+
+fun reminderLabel(minutes: Int, allDay: Boolean): String =
+    (if (allDay) allDayReminders else timedReminders).firstOrNull { it.first == minutes }?.second
+        ?: if (minutes < 0) "No reminder" else "$minutes minutes before"
+
 /**
  * Full-screen editor for a new event ([event] with a blank title) or an existing one.
  * [onSave] gets the finished event; [onDelete] is only shown for an existing event.
@@ -85,6 +116,7 @@ fun Event.timeText(): String = when {
 fun EventEditor(
     event: Event,
     isNew: Boolean,
+    hijriAdjust: Int,
     onSave: (Event) -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
@@ -96,6 +128,15 @@ fun EventEditor(
     var end by remember { mutableStateOf(event.end ?: (event.start ?: LocalTime.of(9, 0)).plusHours(1)) }
     var category by remember { mutableStateOf(event.category) }
     var note by remember { mutableStateOf(event.note) }
+    var repeat by remember { mutableStateOf(event.repeat) }
+    var reminder by remember { mutableStateOf(event.reminder) }
+    val hijriOf: (LocalDate) -> Pair<Int, Int> = { d -> Hijri.of(d, hijriAdjust).let { it.month to it.day } }
+    var pickRepeat by remember { mutableStateOf(false) }
+    var pickReminder by remember { mutableStateOf(false) }
+    var pickStarMonth by remember { mutableStateOf(false) }
+    var pickStar by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val askNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf<String?>(null) }   // "start" or "end"
@@ -114,6 +155,8 @@ fun EventEditor(
                 end = if (allDay) null else fixedEnd,
                 category = category,
                 note = note.trim(),
+                repeat = repeat,
+                reminder = reminder,
             )
         )
     }
@@ -199,6 +242,22 @@ fun EventEditor(
                     }
                 }
 
+                Card {
+                    RowItem("Repeat", repeatLabel(repeat, date)) { pickRepeat = true }
+                    if (repeat.kind == RepeatKind.Star) {
+                        Divider()
+                        RowItem("Malayalam month", Kollavarsham.MONTHS_ML[repeat.month] + " · " + Kollavarsham.MONTHS_EN[repeat.month]) { pickStarMonth = true }
+                        Divider()
+                        RowItem("Star", Kollavarsham.STARS_ML[repeat.day] + " · " + Kollavarsham.STARS_EN[repeat.day]) { pickStar = true }
+                        Text(
+                            "Kept on the day this star holds at sunrise in this month (6 nazhika rule), as for a pirannal or Shraddham.",
+                            color = NumioMuted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+                    Divider()
+                    RowItem("Reminder", reminderLabel(reminder, allDay)) { pickReminder = true }
+                }
+
                 Text("TYPE", color = NumioMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf(Category.Personal, Category.Work).forEach { c ->
@@ -255,6 +314,10 @@ fun EventEditor(
                 TextButton(onClick = {
                     state.selectedDateMillis?.let {
                         date = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+                        // A star, Malayalam or Hijri repeat follows the new date.
+                        if (repeat.kind in listOf(RepeatKind.Star, RepeatKind.Malayalam, RepeatKind.Hijri)) {
+                            repeat = Repeat.from(repeat.kind, date, hijriOf)
+                        }
                     }
                     pickDate = false
                 }) { Text("OK", color = NumioYellow) }
@@ -307,6 +370,66 @@ fun EventEditor(
                     )
                 )
             }
+        )
+    }
+
+    if (pickRepeat) {
+        val options = remember(date) {
+            listOf(
+                RepeatKind.None to "",
+                RepeatKind.Weekly to "",
+                RepeatKind.Monthly to "",
+                RepeatKind.Yearly to "Birthdays, anniversaries",
+                RepeatKind.Star to "Star birthday (പിറന്നാൾ), Shraddham",
+                RepeatKind.Malayalam to "Same Malayalam date every year",
+                RepeatKind.Hijri to "Same Hijri date every year",
+            ).map { (k, hint) -> (if (k == repeat.kind) repeat else Repeat.from(k, date, hijriOf)) to hint }
+        }
+        ChoiceDialog(
+            title = "Repeat",
+            options = options.map { (r, hint) -> repeatLabel(r, date) to hint },
+            selected = options.indexOfFirst { it.first.kind == repeat.kind },
+            onPick = { i -> repeat = options[i].first; pickRepeat = false },
+            onClose = { pickRepeat = false }
+        )
+    }
+
+    if (pickReminder) {
+        val list = if (allDay) allDayReminders else timedReminders
+        ChoiceDialog(
+            title = "Reminder",
+            options = list.map { it.second to "" },
+            selected = list.indexOfFirst { it.first == reminder },
+            onPick = { i ->
+                reminder = list[i].first
+                pickReminder = false
+                if (reminder >= 0 && Build.VERSION.SDK_INT >= 33 && !Reminders.canNotify(context)) {
+                    askNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            },
+            onClose = { pickReminder = false }
+        )
+    }
+
+    if (pickStarMonth) {
+        // Chingam first, as in the Malayalam year.
+        val order = (0 until 12).map { (it + Kollavarsham.CHINGAM) % 12 }
+        ChoiceDialog(
+            title = "Malayalam month",
+            options = order.map { Kollavarsham.MONTHS_ML[it] + " · " + Kollavarsham.MONTHS_EN[it] to "" },
+            selected = order.indexOf(repeat.month),
+            onPick = { i -> repeat = repeat.copy(month = order[i]); pickStarMonth = false },
+            onClose = { pickStarMonth = false }
+        )
+    }
+
+    if (pickStar) {
+        ChoiceDialog(
+            title = "Star",
+            options = (0 until 27).map { Kollavarsham.STARS_ML[it] + " · " + Kollavarsham.STARS_EN[it] to "" },
+            selected = repeat.day,
+            onPick = { i -> repeat = repeat.copy(day = i); pickStar = false },
+            onClose = { pickStar = false }
         )
     }
 
@@ -363,4 +486,40 @@ private fun RowItem(label: String, value: String, onClick: () -> Unit) {
 @Composable
 private fun Divider() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(NumioKey))
+}
+
+/** A list of choices in a dialog; each has a label and an optional hint under it. */
+@Composable
+private fun ChoiceDialog(
+    title: String,
+    options: List<Pair<String, String>>,
+    selected: Int,
+    onPick: (Int) -> Unit,
+    onClose: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        containerColor = NumioCard,
+        title = { Text(title, color = NumioText) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                options.forEachIndexed { i, (label, hint) ->
+                    val on = i == selected
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (on) NumioYellow.copy(alpha = 0.15f) else Color.Transparent)
+                            .clickable(role = Role.RadioButton) { onPick(i) }
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
+                    ) {
+                        Text(label, color = if (on) NumioYellow else NumioText, fontSize = 16.sp,
+                            fontWeight = if (on) FontWeight.Bold else FontWeight.Normal)
+                        if (hint.isNotEmpty()) Text(hint, color = NumioMuted, fontSize = 13.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text("Cancel", color = NumioMuted) } }
+    )
 }

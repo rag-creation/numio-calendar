@@ -48,6 +48,22 @@ object Kollavarsham {
 
     fun starOfDay(date: LocalDate): Int = Sky.star(Sky.sunriseSunset(date).first)
 
+    /** The star kept for observances (birthdays, Shraddham): the one holding 6 nazhika (2 h 24 min) after sunrise. */
+    fun observedStarOfDay(date: LocalDate): Int = Sky.star(Sky.sunriseSunset(date).first.plusSeconds(144 * 60))
+
+    /** When the star at sunrise on [date] ends. */
+    fun starEnds(date: LocalDate): java.time.Instant {
+        var t = Sky.sunriseSunset(date).first
+        val star = Sky.star(t)
+        while (Sky.star(t.plusSeconds(1800)) == star) t = t.plusSeconds(1800)
+        var lo = t; var hi = t.plusSeconds(1800)
+        while (Duration.between(lo, hi).seconds > 30) {
+            val mid = lo.plusSeconds(Duration.between(lo, hi).seconds / 2)
+            if (Sky.star(mid) == star) lo = mid else hi = mid
+        }
+        return hi
+    }
+
     fun tithiOfDay(date: LocalDate): Int = Sky.tithi(Sky.sunriseSunset(date).first)
 
     private fun year(date: LocalDate, sign: Int): Int =

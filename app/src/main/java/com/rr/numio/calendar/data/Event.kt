@@ -29,6 +29,8 @@ data class Event(
     val note: String = "",
     val external: Boolean = false,      // from the phone's calendars: shown, never changed
     val calendarName: String = "",
+    val repeat: Repeat = Repeat(),
+    val reminder: Int = -1,             // minutes before (all day: before 9:00 AM on the day); -1 = none
 ) {
     val allDay: Boolean get() = start == null
 }
@@ -68,6 +70,10 @@ object EventStore {
                 e.end?.let { put("end", it.toString()) }
                 put("category", e.category.id)
                 if (e.note.isNotEmpty()) put("note", e.note)
+                if (e.repeat.repeats) put("repeat", JSONObject().apply {
+                    put("kind", e.repeat.kind.id); put("month", e.repeat.month); put("day", e.repeat.day)
+                })
+                if (e.reminder >= 0) put("reminder", e.reminder)
             })
         }
         return arr.toString()
@@ -85,6 +91,10 @@ object EventStore {
                 end = o.optString("end").takeIf { it.isNotEmpty() }?.let(LocalTime::parse),
                 category = Category.byId(o.optString("category")),
                 note = o.optString("note"),
+                repeat = o.optJSONObject("repeat")?.let {
+                    Repeat(RepeatKind.byId(it.optString("kind")), it.optInt("month"), it.optInt("day"))
+                } ?: Repeat(),
+                reminder = o.optInt("reminder", -1),
             )
         }
     }

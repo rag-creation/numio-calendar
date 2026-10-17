@@ -38,6 +38,9 @@ import com.rr.numio.calendar.data.Event
 import com.rr.numio.calendar.data.EventStore
 import com.rr.numio.calendar.data.PhoneCalendar
 import com.rr.numio.calendar.data.Festivals
+import com.rr.numio.calendar.data.Recurrence
+import com.rr.numio.calendar.hijri.Hijri
+import com.rr.numio.calendar.remind.Reminders
 import com.rr.numio.calendar.data.Category
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.AlertDialog
@@ -73,9 +76,21 @@ fun CalendarApp() {
     var showingPhoneEvent by remember { mutableStateOf<Event?>(null) }
     var festivalEvents by remember { mutableStateOf(emptyList<Event>()) }
     val festivalCache = remember { HashMap<String, List<Event>>() }
-    val byDate = remember(events, phoneEvents, festivalEvents) {
-        (events + phoneEvents + festivalEvents).groupBy { it.date }
+    var shownEvents by remember { mutableStateOf(events) }   // own events, repeats worked out
+    val byDate = remember(shownEvents, phoneEvents, festivalEvents) {
+        (shownEvents + phoneEvents + festivalEvents).groupBy { it.date }
     }
+
+    // Repeating events: work out the days they fall on around the shown month.
+    LaunchedEffect(events, month, settings.hijriAdjust) {
+        val adjust = settings.hijriAdjust
+        shownEvents = withContext(Dispatchers.Default) {
+            Recurrence.expand(events, month.atDay(1).minusDays(7), month.atEndOfMonth().plusDays(7)) { d ->
+                Hijri.of(d, adjust).let { it.month to it.day }
+            }
+        }
+    }
+    LaunchedEffect(Unit) { Reminders.schedule(context) }
 
     // Festivals: worked out per year in the background, then kept.
     LaunchedEffect(month, settings.festivals, settings.hijriAdjust) {
@@ -100,6 +115,7 @@ fun CalendarApp() {
     fun saveEvents(list: List<Event>) {
         events = list
         EventStore.save(context, list)
+        Reminders.schedule(context)
     }
     fun newEvent(on: java.time.LocalDate) {
         editing = Event(id = System.currentTimeMillis(), title = "", date = on)
@@ -107,7 +123,7 @@ fun CalendarApp() {
     }
     fun openEvent(e: Event) {
         if (e.external) { showingPhoneEvent = e; return }
-        editing = e
+        editing = events.firstOrNull { it.id == e.id } ?: e // a repeat opens the whole series
         editingIsNew = false
     }
 
@@ -190,10 +206,13 @@ fun CalendarApp() {
         EventEditor(
             event = e,
             isNew = editingIsNew,
+            hijriAdjust = settings.hijriAdjust,
             onSave = { saved ->
                 saveEvents(events.filter { it.id != saved.id } + saved)
-                selected = saved.date
-                month = YearMonth.from(saved.date)
+                if (!saved.repeat.repeats) {
+                    selected = saved.date
+                    month = YearMonth.from(saved.date)
+                }
                 editing = null
             },
             onDelete = {
