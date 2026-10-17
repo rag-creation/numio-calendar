@@ -186,6 +186,12 @@ fun SettingsScreen(
 
         SectionLabel("GENERAL")
         Card {
+            Text("Theme", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
+            Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("system" to "Follow phone", "dark" to "Dark", "light" to "Light").forEach { (id, label) ->
+                    Choice(label, settings.theme == id, Modifier.weight(1f)) { onChange(settings.copy(theme = id)) }
+                }
+            }
             Text("Week starts on", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
             Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(java.time.DayOfWeek.SUNDAY, java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.SATURDAY).forEach { d ->
@@ -514,8 +520,8 @@ private fun Choice(label: String, on: Boolean, modifier: Modifier, onClick: () -
         modifier = modifier
             .height(44.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (on) Color(0xFF2A2410) else Color(0xFF161616))
-            .border(if (on) 2.dp else 1.dp, if (on) NumioYellow else Color(0xFF333333), RoundedCornerShape(12.dp))
+            .background(if (on) ChoiceOn else ChoiceOff)
+            .border(if (on) 2.dp else 1.dp, if (on) NumioYellow else ChoiceBorder, RoundedCornerShape(12.dp))
             .clickable(role = Role.RadioButton, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

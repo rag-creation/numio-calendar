@@ -14,7 +14,11 @@ data class CalendarSettings(
     val weekStart: java.time.DayOfWeek = java.time.DayOfWeek.SUNDAY,
     val countries: List<String> = emptyList(),   // public holidays of these countries, e.g. "AE", "IN-KL"
     val countdown: Boolean = true,               // festival countdown chips on the month screen
+    val theme: String = "system",                // "system" (follow the phone), "dark" or "light"
 ) {
+    /** Dark or light, given whether the phone itself is in dark mode. */
+    fun isDark(phoneDark: Boolean) = when (theme) { "dark" -> true; "light" -> false; else -> phoneDark }
+
     /**
      * What the calendar actually shows. With [regional] off, the Malayalam and Hijri layers and the
      * Kerala and Islamic festivals are hidden, but their own switches are kept for when it's turned back on.
@@ -37,6 +41,7 @@ data class CalendarSettings(
         private const val WEEK_START = "week_start"
         private const val COUNTRIES = "countries"
         private const val COUNTDOWN = "countdown"
+        private const val THEME = "theme"
 
         fun load(context: Context): CalendarSettings {
             val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -55,6 +60,7 @@ data class CalendarSettings(
                 countries = p.getString(COUNTRIES, null)?.split(',')?.filter { it.isNotBlank() }
                     ?: listOfNotNull(CountryHolidays.phoneCountry(context)),
                 countdown = p.getBoolean(COUNTDOWN, true),
+                theme = p.getString(THEME, "system") ?: "system",
             )
         }
 
@@ -70,6 +76,7 @@ data class CalendarSettings(
                 .putInt(WEEK_START, s.weekStart.value)
                 .putString(COUNTRIES, s.countries.joinToString(","))
                 .putBoolean(COUNTDOWN, s.countdown)
+                .putString(THEME, s.theme)
                 .apply()
         }
     }

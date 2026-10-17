@@ -26,6 +26,7 @@ object Backup {
             put("countries", JSONArray(settings.countries))
             put("weekStart", settings.weekStart.value)
             put("countdown", settings.countdown)
+            put("theme", settings.theme)
         })
     }.toString(2)
 
@@ -45,6 +46,7 @@ object Backup {
                 countries = ids("countries") ?: current.countries,
                 weekStart = java.time.DayOfWeek.of(j.optInt("weekStart", current.weekStart.value).coerceIn(1, 7)),
                 countdown = j.optBoolean("countdown", current.countdown),
+                theme = j.optString("theme", current.theme),
                 welcomed = true,
             )
         }

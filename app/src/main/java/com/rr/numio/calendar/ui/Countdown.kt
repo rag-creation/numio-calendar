@@ -104,6 +104,6 @@ fun CountdownRow(today: LocalDate, settings: CalendarSettings, onGo: (LocalDate)
 private fun chipColor(group: String) = when (group) {
     FestivalGroup.Kerala.id -> MalayalamGold
     FestivalGroup.Islamic.id -> HijriGreen
-    FestivalGroup.Christian.id -> Color(0xFF8FB4F0)
-    else -> Color(0xFFB0B0B0)
+    FestivalGroup.Christian.id -> ChristianBlue
+    else -> NationalGrey
 }

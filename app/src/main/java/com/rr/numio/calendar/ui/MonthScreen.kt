@@ -50,8 +50,6 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 
-val HijriGreen = Color(0xFF7FCFA8)
-private val HijriDim = Color(0xFF5E9C80)
 
 /**
  * The month grid. Arrows change the month; tap a day to select it, tap it again to open it.

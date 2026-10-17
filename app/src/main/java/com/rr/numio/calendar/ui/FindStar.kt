@@ -122,7 +122,7 @@ fun FindStarDialog(start: LocalDate, today: LocalDate, onAdd: (Event) -> Unit, o
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color(0xFF261F12))
+                        .background(MalayalamCard)
                         .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -130,9 +130,9 @@ fun FindStarDialog(start: LocalDate, today: LocalDate, onAdd: (Event) -> Unit, o
                     Text(Kollavarsham.STARS_ML[birth.star], color = MalayalamGold, fontSize = 34.sp, fontWeight = FontWeight.ExtraBold)
                     Text(
                         "${Kollavarsham.STARS_EN[birth.star]} · pada ${birth.pada} · ${Kollavarsham.KOORU_ML[birth.kooru]}",
-                        color = Color(0xFFC9AE80), fontSize = 15.sp
+                        color = MalayalamSoft, fontSize = 15.sp
                     )
-                    Text("Born on " + mal.malayalam + " · " + mal.english, color = Color(0xFFC9AE80), fontSize = 14.sp)
+                    Text("Born on " + mal.malayalam + " · " + mal.english, color = MalayalamSoft, fontSize = 14.sp)
                     if (next != null) {
                         val days = ChronoUnit.DAYS.between(today, next)
                         Text(

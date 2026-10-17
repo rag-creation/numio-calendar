@@ -69,6 +69,18 @@ fun CalendarApp() {
     var month by remember { mutableStateOf(YearMonth.from(today)) }
     var selected by remember { mutableStateOf(today) }
     var settings by remember { mutableStateOf(CalendarSettings.load(context)) }
+    // Theme: follow the phone, or the user's choice. Status and navigation bar icons follow too.
+    val dark = settings.isDark(androidx.compose.foundation.isSystemInDarkTheme())
+    if (Palette.dark != dark) Palette.dark = dark
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.SideEffect {
+        (view.context as? android.app.Activity)?.window?.let { w ->
+            androidx.core.view.WindowCompat.getInsetsController(w, view).apply {
+                isAppearanceLightStatusBars = !dark
+                isAppearanceLightNavigationBars = !dark
+            }
+        }
+    }
     val shown = settings.shown()   // what's on screen (a plain calendar hides the regional layers)
     var events by remember { mutableStateOf(EventStore.load(context)) }
     var editing by remember { mutableStateOf<Event?>(null) }   // the event in the editor

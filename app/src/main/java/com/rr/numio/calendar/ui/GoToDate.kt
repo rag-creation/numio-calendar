@@ -64,8 +64,6 @@ private enum class GoTab(val label: String) { Date("Date"), Festivals("Festivals
 /** One line in the Festivals or Stars list. */
 private data class Entry(val date: LocalDate, val title: String, val subtitle: String, val color: Color)
 
-private val ChristianBlue = Color(0xFF8FB4F0)
-private val NationalGrey = Color(0xFFB0B0B0)
 
 private fun groupColor(id: String) = when (id) {
     FestivalGroup.Kerala.id -> MalayalamGold

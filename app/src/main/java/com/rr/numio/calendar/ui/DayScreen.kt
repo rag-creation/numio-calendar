@@ -139,7 +139,7 @@ private fun DayPage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color(0xFF261F12))
+                    .background(MalayalamCard)
                     .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = "Find a birth star") { onFindStar(day) }
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -160,8 +160,8 @@ private fun DayPage(
                     Text(m.starMl, color = MalayalamGold, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 }
                 Row {
-                    Text(m.english, color = Color(0xFFC9AE80), fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    Text(m.starEn, color = Color(0xFFC9AE80), fontSize = 14.sp)
+                    Text(m.english, color = MalayalamSoft, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    Text(m.starEn, color = MalayalamSoft, fontSize = 14.sp)
                 }
                 val ends = remember(day) {
                     Kollavarsham.starEnds(day).atZone(java.time.ZoneId.systemDefault())
@@ -183,14 +183,14 @@ private fun DayPage(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color(0xFF15241D))
+                    .background(HijriCard)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "HIJRI",
-                        color = Color(0xFF8FB8A4),
+                        color = HijriLabel,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
@@ -199,12 +199,12 @@ private fun DayPage(
                     val a = settings.hijriAdjust
                     Text(
                         text = if (a == 0) "Umm al-Qura" else "Umm al-Qura ${if (a > 0) "+1" else "−1"} day",
-                        color = Color(0xFFA9C9B9),
+                        color = HijriSoft,
                         fontSize = 12.sp
                     )
                 }
-                Text(h.arabic, color = Color(0xFF9FE0BF), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                Text(h.english, color = Color(0xFFA9C9B9), fontSize = 14.sp)
+                Text(h.arabic, color = HijriStrong, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                Text(h.english, color = HijriSoft, fontSize = 14.sp)
             }
         }
 
