@@ -85,7 +85,7 @@ private fun DayPage(
     val locale = Locale.getDefault()
     var goTo by remember { mutableStateOf(false) }
     if (goTo) {
-        GoToDateDialog(start = day, today = today, onGo = { d -> goTo = false; onDay(d) }, onClose = { goTo = false })
+        GoToDateDialog(start = day, today = today, settings = settings, onGo = { d -> goTo = false; onDay(d) }, onClose = { goTo = false })
     }
     Column(
         modifier = Modifier

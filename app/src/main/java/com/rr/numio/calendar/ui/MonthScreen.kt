@@ -76,6 +76,7 @@ fun MonthScreen(
         GoToDateDialog(
             start = selected,
             today = today,
+            settings = settings,
             onGo = { d -> goTo = false; onMonth(YearMonth.from(d)); onSelect(d) },
             onClose = { goTo = false }
         )
