@@ -68,6 +68,7 @@ fun CalendarApp() {
     var month by remember { mutableStateOf(YearMonth.from(today)) }
     var selected by remember { mutableStateOf(today) }
     var settings by remember { mutableStateOf(CalendarSettings.load(context)) }
+    val shown = settings.shown()   // what's on screen (a plain calendar hides the regional layers)
     var events by remember { mutableStateOf(EventStore.load(context)) }
     var editing by remember { mutableStateOf<Event?>(null) }   // the event in the editor
     var editingIsNew by remember { mutableStateOf(false) }
@@ -93,12 +94,12 @@ fun CalendarApp() {
     LaunchedEffect(Unit) { Reminders.schedule(context) }
 
     // Festivals: worked out per year in the background, then kept.
-    LaunchedEffect(month, settings.festivals, settings.hijriAdjust) {
+    LaunchedEffect(month, shown.festivals, settings.hijriAdjust) {
         val years = listOf(month.atDay(1).minusDays(7).year, month.atEndOfMonth().plusDays(7).year).distinct()
         festivalEvents = withContext(Dispatchers.Default) {
             years.flatMap { y ->
-                val key = "$y/${settings.festivals.sorted()}/${settings.hijriAdjust}"
-                festivalCache.getOrPut(key) { Festivals.forYear(y, settings.festivals, settings.hijriAdjust) }
+                val key = "$y/${shown.festivals.sorted()}/${settings.hijriAdjust}"
+                festivalCache.getOrPut(key) { Festivals.forYear(y, shown.festivals, settings.hijriAdjust) }
             }
         }
     }
@@ -144,7 +145,7 @@ fun CalendarApp() {
                     today = today,
                     month = month,
                     selected = selected,
-                    settings = settings,
+                    settings = shown,
                     events = byDate,
                     onOpenEvent = ::openEvent,
                     onMonth = { month = it },
@@ -154,7 +155,7 @@ fun CalendarApp() {
                 Tab.Day -> DayScreen(
                     day = selected,
                     today = today,
-                    settings = settings,
+                    settings = shown,
                     events = byDate,
                     onOpenEvent = ::openEvent,
                     onDay = { selected = it; month = YearMonth.from(it) }
@@ -202,11 +203,37 @@ fun CalendarApp() {
         )
     }
 
+    if (!settings.welcomed) {
+        AlertDialog(
+            onDismissRequest = {},
+            containerColor = NumioCard,
+            title = { Text("Welcome to Calendar", color = NumioText) },
+            text = {
+                Text(
+                    "Show the Malayalam calendar (date and star) and Kerala & Islamic festivals? " +
+                        "The Hijri date can be added too.\n\nYou can change this any time in Settings.",
+                    color = NumioMuted
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { update(settings.copy(regional = true, welcomed = true)) }) {
+                    Text("Yes, show them", color = NumioYellow)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { update(settings.copy(regional = false, welcomed = true)) }) {
+                    Text("Just a plain calendar", color = NumioMuted)
+                }
+            }
+        )
+    }
+
     editing?.let { e ->
         EventEditor(
             event = e,
             isNew = editingIsNew,
             hijriAdjust = settings.hijriAdjust,
+            regional = settings.regional,
             onSave = { saved ->
                 saveEvents(events.filter { it.id != saved.id } + saved)
                 if (!saved.repeat.repeats) {

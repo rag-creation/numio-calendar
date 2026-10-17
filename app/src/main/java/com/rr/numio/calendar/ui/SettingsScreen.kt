@@ -73,28 +73,41 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onChang
     ) {
         Text("Settings", color = NumioText, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
 
-        SectionLabel("MALAYALAM CALENDAR")
         Card {
             ToggleRow(
-                title = "Malayalam layer",
-                text = "Kollavarsham date under each day, and the day's star (nakshatram). Worked out on the phone for Kerala.",
-                checked = settings.malayalamLayer,
-                onChange = { onChange(settings.copy(malayalamLayer = it)) }
+                title = "Malayalam & Hijri calendars",
+                text = if (settings.regional) "Malayalam date and star, Hijri date, Kerala and Islamic festivals. Turn off for a plain calendar."
+                       else "Off: a plain calendar. Turn on for the Malayalam date and star, Hijri date, Kerala and Islamic festivals.",
+                checked = settings.regional,
+                onChange = { onChange(settings.copy(regional = it)) }
             )
-            if (settings.malayalamLayer) {
-                val m = Kollavarsham.of(LocalDate.now())
-                Text(
-                    "Today: " + m.malayalam + " · " + m.starMl,
-                    color = MalayalamGold,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(bottom = 12.dp)
+        }
+
+        if (settings.regional) {
+            SectionLabel("MALAYALAM CALENDAR")
+            Card {
+                ToggleRow(
+                    title = "Malayalam layer",
+                    text = "Kollavarsham date under each day, and the day's star (nakshatram). Worked out on the phone for Kerala.",
+                    checked = settings.malayalamLayer,
+                    onChange = { onChange(settings.copy(malayalamLayer = it)) }
                 )
+                if (settings.malayalamLayer) {
+                    val m = Kollavarsham.of(LocalDate.now())
+                    Text(
+                        "Today: " + m.malayalam + " · " + m.starMl,
+                        color = MalayalamGold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
             }
+
         }
 
         SectionLabel("FESTIVALS")
         Card {
-            FestivalGroup.entries.forEach { g ->
+            FestivalGroup.entries.filter { settings.regional || it !in listOf(FestivalGroup.Kerala, FestivalGroup.Islamic) }.forEach { g ->
                 ToggleRow(
                     title = g.label,
                     text = festivalExamples(g),
@@ -145,84 +158,86 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onChang
             }
         }
 
-        SectionLabel("HIJRI CALENDAR")
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(NumioCard)
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-        ) {
-            Row(
-                modifier = Modifier
+        if (settings.regional) {
+            SectionLabel("HIJRI CALENDAR")
+            Column(
+                Modifier
                     .fillMaxWidth()
-                    .toggleable(
-                        value = settings.hijriLayer,
-                        role = Role.Switch,
-                        onValueChange = { onChange(settings.copy(hijriLayer = it)) }
-                    )
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(NumioCard)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Hijri layer", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Islamic date under each day (Umm al-Qura, built into Android, works offline)",
-                        color = NumioMuted,
-                        fontSize = 13.sp
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = settings.hijriLayer,
+                            role = Role.Switch,
+                            onValueChange = { onChange(settings.copy(hijriLayer = it)) }
+                        )
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Hijri layer", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Islamic date under each day (Umm al-Qura, built into Android, works offline)",
+                            color = NumioMuted,
+                            fontSize = 13.sp
+                        )
+                    }
+                    Switch(
+                        checked = settings.hijriLayer,
+                        onCheckedChange = null,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = NumioInk,
+                            checkedTrackColor = NumioYellow
+                        )
                     )
                 }
-                Switch(
-                    checked = settings.hijriLayer,
-                    onCheckedChange = null,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = NumioInk,
-                        checkedTrackColor = NumioYellow
-                    )
-                )
-            }
 
-            if (settings.hijriLayer) {
-                Column(Modifier.padding(top = 6.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Moon sighting adjustment", color = NumioText, fontSize = 15.sp)
-                    Text(
-                        "Match your country or mosque. Kerala often starts a month a day after the Gulf: choose −1 day.",
-                        color = NumioMuted,
-                        fontSize = 13.sp
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(-1 to "−1 day", 0 to "0", 1 to "+1 day").forEach { (value, label) ->
-                            val on = settings.hijriAdjust == value
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (on) Color(0xFF2A2410) else Color(0xFF161616))
-                                    .border(
-                                        if (on) 2.dp else 1.dp,
-                                        if (on) NumioYellow else Color(0xFF333333),
-                                        RoundedCornerShape(12.dp)
+                if (settings.hijriLayer) {
+                    Column(Modifier.padding(top = 6.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Moon sighting adjustment", color = NumioText, fontSize = 15.sp)
+                        Text(
+                            "Match your country or mosque. Kerala often starts a month a day after the Gulf: choose −1 day.",
+                            color = NumioMuted,
+                            fontSize = 13.sp
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(-1 to "−1 day", 0 to "0", 1 to "+1 day").forEach { (value, label) ->
+                                val on = settings.hijriAdjust == value
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (on) Color(0xFF2A2410) else Color(0xFF161616))
+                                        .border(
+                                            if (on) 2.dp else 1.dp,
+                                            if (on) NumioYellow else Color(0xFF333333),
+                                            RoundedCornerShape(12.dp)
+                                        )
+                                        .clickable(role = Role.RadioButton) {
+                                            onChange(settings.copy(hijriAdjust = value))
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        label,
+                                        color = if (on) NumioYellow else NumioText,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (on) FontWeight.Bold else FontWeight.Medium
                                     )
-                                    .clickable(role = Role.RadioButton) {
-                                        onChange(settings.copy(hijriAdjust = value))
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    label,
-                                    color = if (on) NumioYellow else NumioText,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (on) FontWeight.Bold else FontWeight.Medium
-                                )
+                                }
                             }
                         }
+                        Text(
+                            "Today: " + Hijri.of(LocalDate.now(), settings.hijriAdjust).english,
+                            color = HijriGreen,
+                            fontSize = 14.sp
+                        )
                     }
-                    Text(
-                        "Today: " + Hijri.of(LocalDate.now(), settings.hijriAdjust).english,
-                        color = HijriGreen,
-                        fontSize = 14.sp
-                    )
                 }
             }
         }

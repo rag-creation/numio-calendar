@@ -117,6 +117,7 @@ fun EventEditor(
     event: Event,
     isNew: Boolean,
     hijriAdjust: Int,
+    regional: Boolean,
     onSave: (Event) -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
@@ -383,7 +384,10 @@ fun EventEditor(
                 RepeatKind.Star to "Star birthday (പിറന്നാൾ), Shraddham",
                 RepeatKind.Malayalam to "Same Malayalam date every year",
                 RepeatKind.Hijri to "Same Hijri date every year",
-            ).map { (k, hint) -> (if (k == repeat.kind) repeat else Repeat.from(k, date, hijriOf)) to hint }
+            ).filter { (k, _) ->
+                // A plain calendar offers only the ordinary repeats (unless this event already uses another).
+                regional || k == repeat.kind || k !in listOf(RepeatKind.Star, RepeatKind.Malayalam, RepeatKind.Hijri)
+            }.map { (k, hint) -> (if (k == repeat.kind) repeat else Repeat.from(k, date, hijriOf)) to hint }
         }
         ChoiceDialog(
             title = "Repeat",

@@ -9,7 +9,19 @@ data class CalendarSettings(
     val phoneCalendars: Boolean = false,
     val malayalamLayer: Boolean = true,
     val festivals: Set<FestivalGroup> = FestivalGroup.entries.filter { it.defaultOn }.toSet(),
+    val regional: Boolean = true,      // Malayalam & Hijri calendars; off = a plain calendar
+    val welcomed: Boolean = false,     // the first-launch question was answered
 ) {
+    /**
+     * What the calendar actually shows. With [regional] off, the Malayalam and Hijri layers and the
+     * Kerala and Islamic festivals are hidden, but their own switches are kept for when it's turned back on.
+     */
+    fun shown(): CalendarSettings = if (regional) this else copy(
+        malayalamLayer = false,
+        hijriLayer = false,
+        festivals = festivals - FestivalGroup.Kerala - FestivalGroup.Islamic,
+    )
+
     companion object {
         private const val FILE = "calendar"
         private const val HIJRI_LAYER = "hijri_layer"
@@ -17,6 +29,8 @@ data class CalendarSettings(
         private const val PHONE_CALENDARS = "phone_calendars"
         private const val MALAYALAM_LAYER = "malayalam_layer"
         private const val FESTIVALS = "festivals"
+        private const val REGIONAL = "regional"
+        private const val WELCOMED = "welcomed"
 
         fun load(context: Context): CalendarSettings {
             val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -28,6 +42,8 @@ data class CalendarSettings(
                 festivals = p.getStringSet(FESTIVALS, null)
                     ?.let { ids -> FestivalGroup.entries.filter { it.id in ids }.toSet() }
                     ?: CalendarSettings().festivals,
+                regional = p.getBoolean(REGIONAL, true),
+                welcomed = p.getBoolean(WELCOMED, false),
             )
         }
 
@@ -38,6 +54,8 @@ data class CalendarSettings(
                 .putBoolean(PHONE_CALENDARS, s.phoneCalendars)
                 .putBoolean(MALAYALAM_LAYER, s.malayalamLayer)
                 .putStringSet(FESTIVALS, s.festivals.map { it.id }.toSet())
+                .putBoolean(REGIONAL, s.regional)
+                .putBoolean(WELCOMED, s.welcomed)
                 .apply()
         }
     }
