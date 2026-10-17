@@ -2,6 +2,7 @@ package com.rr.numio.calendar.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -250,7 +251,7 @@ private fun DayCell(
     val isSunday = date.dayOfWeek == DayOfWeek.SUNDAY
     val background = when {
         isToday -> NumioYellow
-        isSelected -> NumioKey
+        isSelected -> NumioYellow.copy(alpha = 0.16f)
         else -> Color.Transparent
     }
     val textColor = when {
@@ -270,7 +271,9 @@ private fun DayCell(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(background),
+                .background(background)
+                // The selected day gets a yellow ring, so it stands out (today is solid yellow).
+                .then(if (isSelected && !isToday) Modifier.border(2.5.dp, NumioYellow, CircleShape) else Modifier),
             contentAlignment = Alignment.Center
         ) {
             Text(
