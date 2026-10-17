@@ -71,4 +71,22 @@ class KollavarshamTest {
         // 3 AM belongs to the previous Kerala day (sunrise to sunrise).
         assertEquals(LocalDate.of(2026, 10, 15), Kollavarsham.keralaDay(LocalDate.of(2026, 10, 16).atTime(3, 0).atZone(ist).toInstant()))
     }
+
+    /** Moon-based Kerala festivals, checked against published dates. */
+    @Test fun moon_festivals() {
+        val known = mapOf(
+            "Sivarathri" to listOf("2023-02-18", "2024-03-08", "2025-02-26", "2026-02-15"),
+            "Karkidaka Vavu" to listOf("2020-07-20", "2022-07-28", "2024-08-03", "2025-07-24", "2026-08-12"),
+            "Deepavali" to listOf("2022-10-24", "2023-11-12", "2024-10-31", "2025-10-20", "2026-11-08"),
+            "Vijayadashami" to listOf("2020-10-25", "2022-10-05", "2023-10-24", "2024-10-13", "2025-10-02", "2026-10-21"),
+            "Vinayaka Chathurthi" to listOf("2020-08-22", "2024-09-07", "2025-08-27", "2026-09-14"),
+        )
+        known.forEach { (name, dates) ->
+            dates.forEach { d ->
+                val date = LocalDate.parse(d)
+                val found = Festivals.kerala(date.year).filter { it.second.first == name }.map { it.first }
+                assertEquals("$name ${date.year}", listOf(date), found)
+            }
+        }
+    }
 }

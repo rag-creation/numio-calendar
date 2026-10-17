@@ -114,6 +114,36 @@ object Sky {
     /** Which nakshatra (0 = Ashwathi … 26 = Revathi) the Moon is in at [t]. */
     fun star(t: Instant): Int = floor(moonSidereal(t) / (360.0 / 27)).toInt().coerceIn(0, 26)
 
+    /** How far the Moon is ahead of the Sun, degrees (0 = new moon, 180 = full moon). */
+    fun elongation(t: Instant): Double = julianDay(t).let { norm(moonTropical(it) - sunTropical(it)) }
+
+    private const val STEP = 6L * 3600
+
+    /** The new moon just before [t]. */
+    fun newMoonBefore(t: Instant): Instant {
+        var hi = t
+        var lo = t.minusSeconds(STEP)
+        while (elongation(lo) <= elongation(hi)) { hi = lo; lo = lo.minusSeconds(STEP) }
+        return refineNewMoon(lo, hi)
+    }
+
+    /** The new moon just after [t]. */
+    fun newMoonAfter(t: Instant): Instant {
+        var lo = t
+        var hi = t.plusSeconds(STEP)
+        while (elongation(hi) >= elongation(lo)) { lo = hi; hi = hi.plusSeconds(STEP) }
+        return refineNewMoon(lo, hi)
+    }
+
+    private fun refineNewMoon(before: Instant, after: Instant): Instant {
+        var lo = before; var hi = after
+        repeat(24) {
+            val mid = lo.plusSeconds(java.time.Duration.between(lo, hi).seconds / 2)
+            if (elongation(mid) > 180) lo = mid else hi = mid
+        }
+        return hi
+    }
+
     /** Lunar day 1–30 (1–15 waxing, 16–30 waning) at [t]. */
     fun tithi(t: Instant): Int {
         val jd = julianDay(t)

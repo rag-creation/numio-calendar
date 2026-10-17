@@ -59,7 +59,7 @@ object Kollavarsham {
     }
 
     const val CHINGAM = 4; const val DHANU = 8; const val MEDAM = 0; const val MAKARAM = 9
-    const val VRISCHIKAM = 7; const val KARKIDAKAM = 3
+    const val VRISCHIKAM = 7; const val KARKIDAKAM = 3; const val THULAM_SIGN = 6
     const val THIRUVONAM = 21; const val UTHRADAM = 20; const val THIRUVATHIRA = 5
 
     /** The month a day belongs to: the Sun's sign at 3/5 of that day's daytime. */
@@ -88,6 +88,22 @@ object Kollavarsham {
     }
 
     fun tithiOfDay(date: LocalDate): Int = Sky.tithi(Sky.sunriseSunset(date).first)
+    fun tithiAtSunset(date: LocalDate): Int = Sky.tithi(Sky.sunriseSunset(date).second)
+    fun tithiAtNoon(date: LocalDate): Int = Sky.sunriseSunset(date).let { (r, s) -> Sky.tithi(r.plus(Duration.between(r, s).dividedBy(2))) }
+    /** The lunar day at the midnight that ends [date] (India time). */
+    fun tithiAtMidnight(date: LocalDate): Int =
+        Sky.tithi(date.plusDays(1).atStartOfDay(java.time.ZoneOffset.ofHoursMinutes(5, 30)).toInstant())
+
+    /**
+     * The lunar month [date] is in, named by the sign the Sun moves into during it (0 = Mesha …),
+     * or null for an extra month (adhika masam), when the Sun changes no sign.
+     */
+    fun lunarMonth(date: LocalDate): Int? {
+        val t = Sky.sunriseSunset(date).first
+        val start = Sky.sunSign(Sky.newMoonBefore(t))
+        val end = Sky.sunSign(Sky.newMoonAfter(t))
+        return if (start == end) null else end
+    }
 
     private fun year(date: LocalDate, sign: Int): Int =
         if (sign in CHINGAM..DHANU && date.monthValue >= 8) date.year - 824 else date.year - 825

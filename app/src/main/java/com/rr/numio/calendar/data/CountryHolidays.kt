@@ -63,7 +63,8 @@ object Holidays {
     private val aliases = listOf(
         setOf("onam", "thiruvonam"), setOf("prophet's birthday", "milad-un-nabi"),
         setOf("mahatma gandhi's birthday", "gandhi jayanti"), setOf("kerala foundation day", "kerala piravi"),
-        setOf("islamic new year", "hijri new year"),
+        setOf("islamic new year", "hijri new year"), setOf("shivaratri", "sivarathri"),
+        setOf("dussehra", "vijayadashami"), setOf("ganesh chaturthi", "vinayaka chathurthi"),
     )
 
     private fun norm(s: String) = s.lowercase().replace(" (estimated)", "").replace(" (observed)", "").trim()

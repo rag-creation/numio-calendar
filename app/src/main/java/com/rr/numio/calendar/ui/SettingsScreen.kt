@@ -536,7 +536,7 @@ private fun SectionLabel(text: String) {
 }
 
 private fun festivalExamples(g: FestivalGroup) = when (g) {
-    FestivalGroup.Kerala -> "Onam, Vishu, Thiruvathira, Makaravilakku, Chingam 1"
+    FestivalGroup.Kerala -> "Onam, Vishu, Deepavali, Sivarathri, Vijayadashami, Karkidaka Vavu, Thiruvathira, Makaravilakku…"
     FestivalGroup.Christian -> "Christmas, Easter, Good Friday, Pesaha"
     FestivalGroup.Islamic -> "Eid al-Fitr, Eid al-Adha, Ramadan, Milad-un-Nabi (expected dates)"
 }

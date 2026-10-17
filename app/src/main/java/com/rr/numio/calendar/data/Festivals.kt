@@ -18,6 +18,9 @@ enum class FestivalGroup(val id: String, val label: String, val defaultOn: Boole
  * so they are expected dates — the real day depends on the moon being sighted.
  */
 object Festivals {
+    private const val KUMBHAM = 10
+    private const val KANNI = 5
+
 
     fun forYear(year: Int, groups: Set<FestivalGroup>, hijriAdjust: Int): List<Event> {
         val list = mutableListOf<Triple<LocalDate, Pair<String, String>, FestivalGroup>>() // date, (title, note), group
@@ -57,6 +60,29 @@ object Festivals {
         add(onam, "Thiruvonam", "Onam")
         add(LocalDate.of(year, 11, 1), "Kerala Piravi", "Kerala's birthday")
         add(monthStart(year, 11, k.VRISCHIKAM), "Mandala season begins", "Vrischikam 1")
+        // Festivals that follow the Moon. Each rule was checked against published Kerala dates for 2020–2026.
+        val days = { from: LocalDate, to: LocalDate -> generateSequence(from) { it.plusDays(1) }.takeWhile { !it.isAfter(to) } }
+        // Sivarathri: the night of the 14th waning day (chaturdashi) in Kumbham.
+        add(days(LocalDate.of(year, 1, 20), LocalDate.of(year, 3, 31)).firstOrNull {
+            k.tithiAtMidnight(it) == 29 && k.signOfDay(it) == KUMBHAM
+        }, "Sivarathri", "Maha Shivaratri")
+        // Karkidaka Vavu: the new moon of Karkidakam, the day it holds at sunset.
+        add(days(LocalDate.of(year, 6, 20), LocalDate.of(year, 8, 31)).firstOrNull {
+            k.tithiAtSunset(it) == 30 && k.signOfDay(it) == k.KARKIDAKAM
+        }, "Karkidaka Vavu", "Vavu bali")
+        // Vinayaka Chathurthi: the 4th waxing day at noon, in the lunar month when the Sun enters Kanni.
+        add(days(LocalDate.of(year, 8, 10), LocalDate.of(year, 9, 30)).firstOrNull {
+            k.tithiAtNoon(it) == 4 && k.lunarMonth(it) == KANNI
+        }, "Vinayaka Chathurthi")
+        // Vijayadashami: the 10th waxing day at sunrise, in the lunar month when the Sun enters Thulam.
+        add(days(LocalDate.of(year, 9, 15), LocalDate.of(year, 11, 10)).firstOrNull {
+            k.tithiOfDay(it) == 10 && k.lunarMonth(it) == k.THULAM_SIGN
+        }, "Vijayadashami", "Vidyarambham")
+        // Deepavali: the 14th waning day (Naraka Chaturdashi) at sunrise in Thulam, as kept in Kerala.
+        add(days(LocalDate.of(year, 10, 5), LocalDate.of(year, 11, 30)).firstOrNull {
+            k.tithiOfDay(it) == 29 && k.signOfDay(it) == k.THULAM_SIGN
+        }, "Deepavali", "Naraka Chaturdashi")
+
         // Dhanu runs from mid-December to mid-January, so a year can have a Thiruvathira at each end.
         for (y in listOf(year - 1, year)) {
             add(k.starDay(LocalDate.of(y, 12, 1), LocalDate.of(y + 1, 1, 31), k.DHANU, k.THIRUVATHIRA), "Thiruvathira", "Dhanu Thiruvathira")

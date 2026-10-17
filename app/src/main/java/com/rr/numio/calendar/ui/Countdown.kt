@@ -49,6 +49,7 @@ private val majors = mapOf(
     "Independence Day" to "Independence Day",
     "National Day" to "National Day",
     "Diwali (Deepavali)" to "Deepavali",
+    "Deepavali" to "Deepavali",
     "Diwali" to "Diwali",
 )
 
