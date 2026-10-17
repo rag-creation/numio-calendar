@@ -45,7 +45,7 @@ fun GoToDateDialog(start: LocalDate, today: LocalDate, onGo: (LocalDate) -> Unit
     var month by remember { mutableStateOf(start.month) }
     var dayText by remember { mutableStateOf("") }
 
-    val year = yearText.toIntOrNull()?.takeIf { it in 2000..2199 }
+    val year = yearText.toIntOrNull()?.takeIf { it in 1900..2199 }
     val ym = year?.let { YearMonth.of(it, month) }
     val day = dayText.toIntOrNull()
     val dayOk = dayText.isEmpty() || (ym != null && day != null && day in 1..ym.lengthOfMonth())
@@ -66,7 +66,7 @@ fun GoToDateDialog(start: LocalDate, today: LocalDate, onGo: (LocalDate) -> Unit
                 // Year: type it, or step with the arrows.
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ArrowButton(left = true, label = "Previous year") {
-                        yearText = ((yearText.toIntOrNull() ?: start.year) - 1).coerceIn(2000, 2199).toString()
+                        yearText = ((yearText.toIntOrNull() ?: start.year) - 1).coerceIn(1900, 2199).toString()
                     }
                     OutlinedTextField(
                         value = yearText,
@@ -80,10 +80,10 @@ fun GoToDateDialog(start: LocalDate, today: LocalDate, onGo: (LocalDate) -> Unit
                         modifier = Modifier.weight(1f)
                     )
                     ArrowButton(left = false, label = "Next year") {
-                        yearText = ((yearText.toIntOrNull() ?: start.year) + 1).coerceIn(2000, 2199).toString()
+                        yearText = ((yearText.toIntOrNull() ?: start.year) + 1).coerceIn(1900, 2199).toString()
                     }
                 }
-                if (year == null) Text("A year from 2000 to 2199", color = NumioSunday, fontSize = 13.sp)
+                if (year == null) Text("A year from 1900 to 2199", color = NumioSunday, fontSize = 13.sp)
 
                 // Months: 4 rows of 3.
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
