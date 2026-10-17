@@ -49,6 +49,7 @@ fun DayScreen(
     events: Map<LocalDate, List<Event>>,
     onOpenEvent: (Event) -> Unit,
     onDay: (LocalDate) -> Unit,
+    onFindStar: (LocalDate) -> Unit,
 ) {
     // A pager of days: swipe to the next or previous day, it follows your finger.
     val pager = rememberPagerState(initialPage = Pages.ofDay(day)) { Pages.DAYS }
@@ -69,7 +70,7 @@ fun DayScreen(
     }
     HorizontalPager(state = pager, modifier = Modifier.fillMaxSize(), key = { it }) { page ->
         val d = Pages.day(page)
-        DayPage(d, today, settings, events[d].orEmpty(), onOpenEvent, onDay)
+        DayPage(d, today, settings, events[d].orEmpty(), onOpenEvent, onDay, onFindStar)
     }
 }
 
@@ -81,6 +82,7 @@ private fun DayPage(
     events: List<Event>,
     onOpenEvent: (Event) -> Unit,
     onDay: (LocalDate) -> Unit,
+    onFindStar: (LocalDate) -> Unit,
 ) {
     val locale = Locale.getDefault()
     var goTo by remember { mutableStateOf(false) }
@@ -138,6 +140,7 @@ private fun DayPage(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
                     .background(Color(0xFF261F12))
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = "Find a birth star") { onFindStar(day) }
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {

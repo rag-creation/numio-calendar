@@ -62,4 +62,13 @@ class KollavarshamTest {
         assertEquals(LocalDate.of(2026, 4, 5), Festivals.easter(2026))
         assertEquals(LocalDate.of(2027, 3, 28), Festivals.easter(2027))
     }
+
+    @Test fun birth_star() {
+        // 16 Oct 2026: Thrikketta until about 6:22 AM IST, then Moolam (published panchang).
+        val ist = java.time.ZoneOffset.ofHoursMinutes(5, 30)
+        assertEquals("Moolam", Kollavarsham.STARS_EN[Kollavarsham.birth(LocalDate.of(2026, 10, 16).atTime(12, 0).atZone(ist).toInstant()).star])
+        assertEquals("Thrikketta", Kollavarsham.STARS_EN[Kollavarsham.birth(LocalDate.of(2026, 10, 16).atTime(5, 0).atZone(ist).toInstant()).star])
+        // 3 AM belongs to the previous Kerala day (sunrise to sunrise).
+        assertEquals(LocalDate.of(2026, 10, 15), Kollavarsham.keralaDay(LocalDate.of(2026, 10, 16).atTime(3, 0).atZone(ist).toInstant()))
+    }
 }

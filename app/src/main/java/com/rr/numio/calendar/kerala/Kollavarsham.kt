@@ -35,6 +35,29 @@ object Kollavarsham {
         "Moolam", "Pooradam", "Uthradam", "Thiruvonam", "Avittam", "Chathayam", "Pooruruttathi", "Uthrattathi", "Revathi",
     )
 
+    /** Moon signs as Malayalis say them (kooru), indexed like the months: 0 = Medam. */
+    val KOORU_ML = listOf("മേടക്കൂറ്", "ഇടവക്കൂറ്", "മിഥുനക്കൂറ്", "കർക്കടകക്കൂറ്", "ചിങ്ങക്കൂറ്", "കന്നിക്കൂറ്",
+        "തുലാക്കൂറ്", "വൃശ്ചികക്കൂറ്", "ധനുക്കൂറ്", "മകരക്കൂറ്", "കുംഭക്കൂറ്", "മീനക്കൂറ്")
+
+    /** The star, its quarter (pada 1–4) and the Moon's sign (kooru) at a moment, like a birth. */
+    data class Birth(val star: Int, val pada: Int, val kooru: Int)
+
+    fun birth(t: java.time.Instant): Birth {
+        val lon = Sky.moonSidereal(t)
+        val span = 360.0 / 27
+        return Birth(
+            star = (lon / span).toInt().coerceIn(0, 26),
+            pada = ((lon % span) / (span / 4)).toInt().coerceIn(0, 3) + 1,
+            kooru = (lon / 30).toInt().coerceIn(0, 11),
+        )
+    }
+
+    /** The Malayalam day a moment belongs to: a Kerala day runs from sunrise to sunrise. */
+    fun keralaDay(t: java.time.Instant): LocalDate {
+        val d = t.atZone(java.time.ZoneOffset.ofHoursMinutes(5, 30)).toLocalDate()
+        return if (t.isBefore(Sky.sunriseSunset(d).first)) d.minusDays(1) else d
+    }
+
     const val CHINGAM = 4; const val DHANU = 8; const val MEDAM = 0; const val MAKARAM = 9
     const val VRISCHIKAM = 7; const val KARKIDAKAM = 3
     const val THIRUVONAM = 21; const val UTHRADAM = 20; const val THIRUVATHIRA = 5

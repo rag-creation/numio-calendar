@@ -39,6 +39,7 @@ import com.rr.numio.calendar.data.EventStore
 import com.rr.numio.calendar.data.PhoneCalendar
 import com.rr.numio.calendar.data.Festivals
 import com.rr.numio.calendar.data.Recurrence
+import android.widget.Toast
 import com.rr.numio.calendar.hijri.Hijri
 import com.rr.numio.calendar.remind.Reminders
 import com.rr.numio.calendar.data.Category
@@ -75,6 +76,7 @@ fun CalendarApp() {
     var phoneEvents by remember { mutableStateOf(emptyList<Event>()) }
     var phoneVersion by remember { mutableStateOf(0) }            // bump to re-read after permission
     var showingPhoneEvent by remember { mutableStateOf<Event?>(null) }
+    var findStar by remember { mutableStateOf<LocalDate?>(null) }        // Find my star, opened on this date
     var festivalEvents by remember { mutableStateOf(emptyList<Event>()) }
     val festivalCache = remember { HashMap<String, List<Event>>() }
     var shownEvents by remember { mutableStateOf(events) }   // own events, repeats worked out
@@ -158,9 +160,10 @@ fun CalendarApp() {
                     settings = shown,
                     events = byDate,
                     onOpenEvent = ::openEvent,
-                    onDay = { selected = it; month = YearMonth.from(it) }
+                    onDay = { selected = it; month = YearMonth.from(it) },
+                    onFindStar = { findStar = it }
                 )
-                Tab.Settings -> SettingsScreen(settings, onPermission = { phoneVersion++ }, onChange = ::update)
+                Tab.Settings -> SettingsScreen(settings, onPermission = { phoneVersion++ }, onFindStar = { findStar = today }, onChange = ::update)
             }
             // The yellow + : a new event on the selected day.
             if (tab != Tab.Settings) {
@@ -225,6 +228,19 @@ fun CalendarApp() {
                     Text("Just a plain calendar", color = NumioMuted)
                 }
             }
+        )
+    }
+
+    findStar?.let { d ->
+        FindStarDialog(
+            start = d,
+            today = today,
+            onAdd = { e ->
+                saveEvents(events + e)
+                findStar = null
+                Toast.makeText(context, "Added: every year on its star", Toast.LENGTH_SHORT).show()
+            },
+            onClose = { findStar = null }
         )
     }
 

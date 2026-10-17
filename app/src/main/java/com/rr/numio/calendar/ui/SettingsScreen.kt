@@ -43,7 +43,7 @@ import com.rr.numio.calendar.hijri.Hijri
 import java.time.LocalDate
 
 @Composable
-fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onChange: (CalendarSettings) -> Unit) {
+fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindStar: () -> Unit, onChange: (CalendarSettings) -> Unit) {
     val context = LocalContext.current
     var denied by remember { mutableStateOf(false) }
     val askCalendar = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -100,6 +100,21 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onChang
                         fontSize = 14.sp,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
+                }
+            }
+            Card {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button, onClick = onFindStar)
+                        .padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Find my star · ജന്മനക്ഷത്രം", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Birth star, pada and kooru from a birth date and time, and a yearly പിറന്നാൾ.", color = NumioMuted, fontSize = 13.sp)
+                    }
+                    Text("›", color = MalayalamGold, fontSize = 24.sp)
                 }
             }
 
