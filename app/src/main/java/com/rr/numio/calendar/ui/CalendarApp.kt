@@ -70,8 +70,9 @@ fun CalendarApp() {
     var selected by remember { mutableStateOf(today) }
     var settings by remember { mutableStateOf(CalendarSettings.load(context)) }
     // Theme: follow the phone, or the user's choice. Status and navigation bar icons follow too.
-    val dark = settings.isDark(androidx.compose.foundation.isSystemInDarkTheme())
-    if (Palette.dark != dark) Palette.dark = dark
+    val look = Looks.of(settings.theme, androidx.compose.foundation.isSystemInDarkTheme())
+    if (Palette.current != look) Palette.current = look
+    val dark = look.dark
     val view = androidx.compose.ui.platform.LocalView.current
     androidx.compose.runtime.SideEffect {
         (view.context as? android.app.Activity)?.window?.let { w ->

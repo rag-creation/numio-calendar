@@ -14,11 +14,8 @@ data class CalendarSettings(
     val weekStart: java.time.DayOfWeek = java.time.DayOfWeek.SUNDAY,
     val countries: List<String> = emptyList(),   // public holidays of these countries, e.g. "AE", "IN-KL"
     val countdown: Boolean = true,               // festival countdown chips on the month screen
-    val theme: String = "system",                // "system" (follow the phone), "dark" or "light"
+    val theme: String = "system",                // "system" (follow the phone) or a theme id, see Looks
 ) {
-    /** Dark or light, given whether the phone itself is in dark mode. */
-    fun isDark(phoneDark: Boolean) = when (theme) { "dark" -> true; "light" -> false; else -> phoneDark }
-
     /**
      * What the calendar actually shows. With [regional] off, the Malayalam and Hijri layers and the
      * Kerala and Islamic festivals are hidden, but their own switches are kept for when it's turned back on.

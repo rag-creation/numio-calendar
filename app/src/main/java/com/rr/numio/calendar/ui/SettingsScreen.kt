@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -187,11 +188,7 @@ fun SettingsScreen(
         SectionLabel("GENERAL")
         Card {
             Text("Theme", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
-            Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("system" to "Follow phone", "dark" to "Dark", "light" to "Light").forEach { (id, label) ->
-                    Choice(label, settings.theme == id, Modifier.weight(1f)) { onChange(settings.copy(theme = id)) }
-                }
-            }
+            ThemePicker(settings.theme) { onChange(settings.copy(theme = it)) }
             Text("Week starts on", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
             Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(java.time.DayOfWeek.SUNDAY, java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.SATURDAY).forEach { d ->
@@ -415,6 +412,54 @@ private fun CountryHolidaysPage(settings: CalendarSettings, onBack: () -> Unit, 
             "Built into the app, no internet: public holidays 2000–2050 from the open-source holidays library (MIT licence). Moon-based dates are expected dates.",
             color = NumioMuted, fontSize = 12.sp
         )
+    }
+}
+
+/** Theme tiles, two per row: a little preview of each theme's background, card and accent. */
+@Composable
+private fun ThemePicker(selected: String, onPick: (String) -> Unit) {
+    val options = listOf<Pair<String, Look?>>("system" to null) + Looks.all.map { it.id to it }
+    Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        options.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { (id, look) ->
+                    val on = id == selected
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(if (on) 2.5.dp else 1.dp, if (on) NumioYellow else ChoiceBorder, RoundedCornerShape(14.dp))
+                            .clickable(role = Role.RadioButton) { onPick(id) }
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Preview: half Light and half Numio for "Follow phone".
+                        val previews = if (look == null) listOf(Looks.Light, Looks.Numio) else listOf(look)
+                        Row(Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp))) {
+                            previews.forEach { p ->
+                                Box(
+                                    Modifier.weight(1f).fillMaxSize().background(Color(p.bg)).padding(6.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(width = 18.dp, height = 22.dp).clip(RoundedCornerShape(5.dp)).background(Color(p.card)))
+                                        Box(Modifier.size(14.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color(p.accent)))
+                                    }
+                                }
+                            }
+                        }
+                        Text(
+                            look?.name ?: "Follow phone",
+                            color = if (on) NumioYellow else NumioText,
+                            fontSize = 14.sp,
+                            fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1
+                        )
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
     }
 }
 

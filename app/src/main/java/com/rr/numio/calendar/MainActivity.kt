@@ -12,7 +12,8 @@ class MainActivity : ComponentActivity() {
         // Start in the right theme, so a light-theme user never sees a dark flash.
         val phoneDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
-        com.rr.numio.calendar.ui.Palette.dark = com.rr.numio.calendar.data.CalendarSettings.load(this).isDark(phoneDark)
+        com.rr.numio.calendar.ui.Palette.current =
+            com.rr.numio.calendar.ui.Looks.of(com.rr.numio.calendar.data.CalendarSettings.load(this).theme, phoneDark)
         setContent {
             NumioCalendarTheme {
                 CalendarApp()
