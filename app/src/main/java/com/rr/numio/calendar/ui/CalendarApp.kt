@@ -82,6 +82,8 @@ fun CalendarApp() {
             }
         }
     }
+    val zone = settings.secondZone.takeIf { it.isNotBlank() }?.let { runCatching { java.time.ZoneId.of(it) }.getOrNull() }
+    if (SecondZone.zone != zone) { SecondZone.zone = zone; SecondZone.label = SecondZone.labelOf(settings.secondZone) }
     val shown = settings.shown()   // what's on screen (a plain calendar hides the regional layers)
     var events by remember { mutableStateOf(EventStore.load(context)) }
     var editing by remember { mutableStateOf<Event?>(null) }   // the event in the editor
@@ -215,6 +217,7 @@ fun CalendarApp() {
             text = {
                 Column {
                     Text(e.date.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")) + " · " + e.timeText(), color = e.category.color(), fontSize = 15.sp)
+                    e.secondZoneText()?.let { Text(it, color = NumioYellow, fontSize = 14.sp) }
                     val festival = e.category == Category.Festival
                     if (!festival && e.calendarName.isNotEmpty()) Text("From " + e.calendarName, color = NumioMuted, fontSize = 13.sp)
                     if (e.note.isNotBlank()) Text(e.note, color = NumioText, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))

@@ -15,6 +15,7 @@ data class CalendarSettings(
     val countries: List<String> = emptyList(),   // public holidays of these countries, e.g. "AE", "IN-KL"
     val countdown: Boolean = true,               // festival countdown chips on the month screen
     val theme: String = "system",                // "system" (follow the phone) or a theme id, see Looks
+    val secondZone: String = "",                 // time zone id shown under event times, "" = off
 ) {
     /**
      * What the calendar actually shows. With [regional] off, the Malayalam and Hijri layers and the
@@ -39,6 +40,7 @@ data class CalendarSettings(
         private const val COUNTRIES = "countries"
         private const val COUNTDOWN = "countdown"
         private const val THEME = "theme"
+        private const val SECOND_ZONE = "second_zone"
 
         fun load(context: Context): CalendarSettings {
             val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -58,6 +60,7 @@ data class CalendarSettings(
                     ?: listOfNotNull(CountryHolidays.phoneCountry(context)),
                 countdown = p.getBoolean(COUNTDOWN, true),
                 theme = p.getString(THEME, "system") ?: "system",
+                secondZone = p.getString(SECOND_ZONE, "") ?: "",
             )
         }
 
@@ -74,6 +77,7 @@ data class CalendarSettings(
                 .putString(COUNTRIES, s.countries.joinToString(","))
                 .putBoolean(COUNTDOWN, s.countdown)
                 .putString(THEME, s.theme)
+                .putString(SECOND_ZONE, s.secondZone)
                 .apply()
         }
     }

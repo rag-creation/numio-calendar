@@ -400,6 +400,7 @@ fun EventRow(e: Event, big: Boolean = false, onClick: () -> Unit) {
                 fontSize = 12.sp,
                 maxLines = 1
             )
+            e.secondZoneText()?.let { Text(it, color = NumioYellow, fontSize = 12.sp, maxLines = 1) }
         }
     }
 }

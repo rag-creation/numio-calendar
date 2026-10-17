@@ -87,6 +87,23 @@ fun Event.timeText(): String = when {
     else -> start.format(timeFormat) + " – " + end.format(timeFormat)
 }
 
+/**
+ * The event's start in the second time zone, like "8:30 PM in India", or null when that's off,
+ * the event is all day, or the second zone has the same time as the phone.
+ */
+fun Event.secondZoneText(): String? {
+    val zone = SecondZone.zone ?: return null
+    val s = start ?: return null
+    val here = date.atTime(s).atZone(java.time.ZoneId.systemDefault())
+    val there = here.withZoneSameInstant(zone)
+    if (there.toLocalDateTime() == here.toLocalDateTime()) return null
+    val day = when (there.toLocalDate().compareTo(date)) {
+        0 -> ""
+        else -> if (there.toLocalDate().isAfter(date)) " (next day)" else " (day before)"
+    }
+    return there.toLocalTime().format(timeFormat) + day + " in " + SecondZone.label
+}
+
 /** "Every year: Thiruvonam in Thulam" and so on. */
 fun repeatLabel(r: Repeat, date: LocalDate): String = when (r.kind) {
     RepeatKind.None -> "Does not repeat"

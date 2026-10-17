@@ -27,6 +27,7 @@ object Backup {
             put("weekStart", settings.weekStart.value)
             put("countdown", settings.countdown)
             put("theme", settings.theme)
+            put("secondZone", settings.secondZone)
         })
     }.toString(2)
 
@@ -47,6 +48,7 @@ object Backup {
                 weekStart = java.time.DayOfWeek.of(j.optInt("weekStart", current.weekStart.value).coerceIn(1, 7)),
                 countdown = j.optBoolean("countdown", current.countdown),
                 theme = j.optString("theme", current.theme),
+                secondZone = j.optString("secondZone", current.secondZone),
                 welcomed = true,
             )
         }

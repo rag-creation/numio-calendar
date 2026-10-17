@@ -143,6 +143,34 @@ fun SettingsScreen(
         CountryHolidaysPage(settings, onBack = { countriesPage = false }, onChange = onChange)
         return
     }
+    var pickZone by remember { mutableStateOf(false) }
+    if (pickZone) {
+        val options = listOf("" to "Off") + SecondZone.places
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickZone = false },
+            containerColor = NumioCard,
+            title = { Text("Second time zone", color = NumioText) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    options.forEach { (id, label) ->
+                        val on = id == settings.secondZone
+                        Text(
+                            label,
+                            color = if (on) NumioYellow else NumioText,
+                            fontSize = 16.sp,
+                            fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(role = Role.RadioButton) { onChange(settings.copy(secondZone = id)); pickZone = false }
+                                .padding(vertical = 10.dp, horizontal = 8.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { pickZone = false }) { Text("Cancel", color = NumioMuted) } }
+        )
+    }
     val version = remember {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
     }
@@ -199,6 +227,11 @@ fun SettingsScreen(
                     ) { onChange(settings.copy(weekStart = d)) }
                 }
             }
+            LinkRow(
+                "Second time zone",
+                if (settings.secondZone.isBlank()) "Off · show the time back home under each event, like \"8:30 PM in India\""
+                else "Showing the time in " + SecondZone.labelOf(settings.secondZone)
+            ) { pickZone = true }
             ToggleRow(
                 title = "Festival countdown",
                 text = "Chips under the month name, like \"Christmas · 69 days\". Tap one to go to its day.",

@@ -42,6 +42,23 @@ object Looks {
         if (id == "system") (if (phoneDark) Numio else Light) else all.firstOrNull { it.id == id } ?: Numio
 }
 
+/** A second time zone shown under event times, like "8:30 PM in India"; null = off. */
+object SecondZone {
+    var zone by mutableStateOf<java.time.ZoneId?>(null)
+    var label by mutableStateOf("")
+
+    /** Places people often want: home for expats, and family abroad. */
+    val places = listOf(
+        "Asia/Kolkata" to "India", "Asia/Dubai" to "UAE", "Asia/Riyadh" to "Saudi Arabia", "Asia/Qatar" to "Qatar",
+        "Asia/Kuwait" to "Kuwait", "Asia/Muscat" to "Oman", "Asia/Bahrain" to "Bahrain", "Asia/Colombo" to "Sri Lanka",
+        "Asia/Karachi" to "Pakistan", "Asia/Dhaka" to "Bangladesh", "Asia/Kathmandu" to "Nepal", "Asia/Singapore" to "Singapore",
+        "Asia/Kuala_Lumpur" to "Malaysia", "Asia/Manila" to "Philippines", "Asia/Tokyo" to "Japan", "Australia/Sydney" to "Sydney",
+        "Europe/London" to "UK", "Europe/Berlin" to "Germany", "Europe/Paris" to "France", "America/New_York" to "New York",
+        "America/Chicago" to "Chicago", "America/Los_Angeles" to "California", "America/Toronto" to "Toronto",
+    )
+    fun labelOf(id: String) = places.firstOrNull { it.first == id }?.second ?: id.substringAfterLast('/').replace('_', ' ')
+}
+
 /** The theme on screen. Every colour below reads it, so a theme change redraws everything. */
 object Palette {
     var current by mutableStateOf(Looks.Numio)
@@ -68,14 +85,14 @@ val EventFestival get() = pick(0xFFF29B4B, 0xFFDB7518)
 val EventPrivate get() = pick(0xFFB08CF0, 0xFF7E57D0)
 
 // Malayalam calendar.
-val MalayalamGold get() = pick(0xFFE3B15E, 0xFF9C6A10)
-val MalayalamDim get() = pick(0xFFA88A55, 0xFF8A7146)
-val MalayalamSoft get() = pick(0xFFC9AE80, 0xFF7D6331)
+val MalayalamGold get() = pick(0xFFE3B15E, 0xFF7E5206)
+val MalayalamDim get() = pick(0xFFA88A55, 0xFF6E5528)
+val MalayalamSoft get() = pick(0xFFC9AE80, 0xFF6A4F20)
 val MalayalamCard get() = pick(0x33E3B15E, 0x66FBE9C4)
 
 // Hijri calendar.
 val HijriGreen get() = pick(0xFF7FCFA8, 0xFF23845A)
-val HijriDim get() = pick(0xFF5E9C80, 0xFF4E7F68)
+val HijriDim get() = pick(0xFF5E9C80, 0xFF3E6B55)
 val HijriCard get() = pick(0x337FCFA8, 0x66D5F0E2)
 val HijriLabel get() = pick(0xFF8FB8A4, 0xFF4D8268)
 val HijriSoft get() = pick(0xFFA9C9B9, 0xFF3F6E58)
