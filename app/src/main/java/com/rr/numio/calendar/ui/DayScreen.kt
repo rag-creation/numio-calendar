@@ -27,6 +27,10 @@ import com.rr.numio.calendar.data.sortedForDay
 import com.rr.numio.calendar.hijri.Hijri
 import com.rr.numio.calendar.kerala.Kollavarsham
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -79,6 +83,10 @@ private fun DayPage(
     onDay: (LocalDate) -> Unit,
 ) {
     val locale = Locale.getDefault()
+    var goTo by remember { mutableStateOf(false) }
+    if (goTo) {
+        GoToDateDialog(start = day, today = today, onGo = { d -> goTo = false; onDay(d) }, onClose = { goTo = false })
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -88,11 +96,15 @@ private fun DayPage(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = day.month.getDisplayName(TextStyle.FULL, locale) + " " + day.year,
+                text = day.month.getDisplayName(TextStyle.FULL, locale) + " " + day.year + " ▾",
                 color = NumioMuted,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = "Go to date") { goTo = true }
+                    .padding(vertical = 8.dp)
             )
             ArrowButton(left = true, label = "Previous day") { onDay(day.minusDays(1)) }
             Spacer(Modifier.size(6.dp))

@@ -35,6 +35,9 @@ import com.rr.numio.calendar.kerala.Kollavarsham
 import com.rr.numio.calendar.kerala.MalayalamDate
 import com.rr.numio.calendar.data.Category
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -68,6 +71,15 @@ fun MonthScreen(
     val locale = Locale.getDefault()
     val hijriOn = settings.hijriLayer
     val adjust = settings.hijriAdjust
+    var goTo by remember { mutableStateOf(false) }
+    if (goTo) {
+        GoToDateDialog(
+            start = selected,
+            today = today,
+            onGo = { d -> goTo = false; onMonth(YearMonth.from(d)); onSelect(d) },
+            onClose = { goTo = false }
+        )
+    }
     val currentMonth = rememberUpdatedState(month)
     val onMonthState = rememberUpdatedState(onMonth)
     val malayalam = remember(month, settings.malayalamLayer) {
@@ -86,7 +98,12 @@ fun MonthScreen(
                 .padding(start = 8.dp, top = 16.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.weight(1f)) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(role = Role.Button, onClickLabel = "Go to date") { goTo = true }
+            ) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = month.month.getDisplayName(TextStyle.FULL, locale),
@@ -101,6 +118,7 @@ fun MonthScreen(
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
+                    Text(" ▾", color = NumioMuted, fontSize = 20.sp)
                 }
                 if (malayalam.isNotEmpty()) {
                     Text(text = malayalamMonthsTitle(malayalam.values), color = MalayalamGold, fontSize = 14.sp)
