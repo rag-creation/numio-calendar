@@ -101,10 +101,11 @@ fun GoToDateDialog(
 
     // Festivals of the year, worked out in the background.
     var festivals by remember { mutableStateOf<List<Entry>?>(null) }
-    LaunchedEffect(year, settings.festivals, settings.hijriAdjust) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(year, settings.festivals, settings.hijriAdjust, settings.countries) {
         festivals = null
         festivals = if (year == null) emptyList() else withContext(Dispatchers.Default) {
-            Festivals.forYear(year, settings.festivals, settings.hijriAdjust).sortedBy { it.date }.map { f ->
+            com.rr.numio.calendar.data.Holidays.forYear(context, year, settings).sortedBy { it.date }.map { f ->
                 Entry(
                     f.date,
                     f.title,
@@ -262,7 +263,7 @@ fun GoToDateDialog(
                 GoTab.Festivals -> TileList(
                     entries = festivals,
                     today = today,
-                    empty = if (settings.festivals.isEmpty()) "No festivals are switched on. Choose some in Settings." else "No festivals this year.",
+                    empty = if (settings.festivals.isEmpty() && settings.countries.isEmpty()) "No holidays are switched on. Choose some in Settings." else "No holidays this year.",
                     onGo = onGo
                 )
 

@@ -66,9 +66,14 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindS
     val phoneOn = settings.phoneCalendars && PhoneCalendar.hasPermission(context)
 
     var regionalPage by remember { mutableStateOf(false) }
-    androidx.activity.compose.BackHandler(enabled = regionalPage) { regionalPage = false }
+    var countriesPage by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = regionalPage || countriesPage) { regionalPage = false; countriesPage = false }
     if (regionalPage) {
         RegionalCalendarsPage(settings, onFindStar, onBack = { regionalPage = false }, onChange = onChange)
+        return
+    }
+    if (countriesPage) {
+        CountryHolidaysPage(settings, onBack = { countriesPage = false }, onChange = onChange)
         return
     }
     val version = remember {
@@ -125,13 +130,36 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindS
                     ) { onChange(settings.copy(weekStart = d)) }
                 }
             }
+            ToggleRow(
+                title = "Festival countdown",
+                text = "Chips under the month name, like \"Christmas · 69 days\". Tap one to go to its day.",
+                checked = settings.countdown,
+                onChange = { onChange(settings.copy(countdown = it)) }
+            )
         }
 
         SectionLabel("HOLIDAYS")
         Card {
-            listOf(FestivalGroup.India, FestivalGroup.Christian, FestivalGroup.Uae).forEach { g ->
-                FestivalToggle(g, settings, onChange)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button) { countriesPage = true }
+                    .padding(vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Country holidays", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (settings.countries.isEmpty()) "None chosen · public holidays of 249 countries"
+                        else settings.countries.joinToString(", ") { com.rr.numio.calendar.data.CountryHolidays.name(it) },
+                        color = if (settings.countries.isEmpty()) NumioMuted else NumioYellow,
+                        fontSize = 13.sp,
+                        maxLines = 2
+                    )
+                }
+                Text("›", color = NumioYellow, fontSize = 24.sp)
             }
+            FestivalToggle(FestivalGroup.Christian, settings, onChange)
         }
 
         SectionLabel("PHONE CALENDARS")
@@ -247,6 +275,66 @@ private fun RegionalCalendarsPage(
     }
 }
 
+/** Pick countries whose public holidays are shown: search, tick, done. */
+@Composable
+private fun CountryHolidaysPage(settings: CalendarSettings, onBack: () -> Unit, onChange: (CalendarSettings) -> Unit) {
+    val context = LocalContext.current
+    var query by remember { mutableStateOf("") }
+    val all = remember {
+        com.rr.numio.calendar.data.CountryHolidays.available(context)
+            .map { it to com.rr.numio.calendar.data.CountryHolidays.name(it) }
+            .sortedBy { it.second.lowercase() }
+    }
+    val chosen = settings.countries
+    val shown = all.filter { (code, name) ->
+        query.isBlank() || name.contains(query.trim(), ignoreCase = true) || code.equals(query.trim(), ignoreCase = true)
+    }.sortedBy { if (it.first in chosen) 0 else 1 }
+
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ArrowButton(left = true, label = "Back", onClick = onBack)
+            Text("Country holidays", color = NumioText, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 12.dp))
+        }
+        androidx.compose.material3.OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = { Text("Search countries", color = NumioMuted) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = NumioYellow, cursorColor = NumioYellow, unfocusedBorderColor = NumioKey,
+                focusedTextColor = NumioText, unfocusedTextColor = NumioText,
+            )
+        )
+        androidx.compose.foundation.lazy.LazyColumn(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(NumioCard)) {
+            items(shown.size, key = { shown[it].first }) { i ->
+                val (code, name) = shown[i]
+                val on = code in chosen
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = on, role = Role.Checkbox) { tick ->
+                            onChange(settings.copy(countries = if (tick) chosen + code else chosen - code))
+                        }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(name, color = if (on) NumioYellow else NumioText, fontSize = 16.sp,
+                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
+                    androidx.compose.material3.Checkbox(
+                        checked = on, onCheckedChange = null,
+                        colors = androidx.compose.material3.CheckboxDefaults.colors(checkedColor = NumioYellow, checkmarkColor = NumioInk, uncheckedColor = NumioMuted)
+                    )
+                }
+            }
+        }
+        Text(
+            "Built into the app, no internet: public holidays 2000–2050 from the open-source holidays library (MIT licence). Moon-based dates are expected dates.",
+            color = NumioMuted, fontSize = 12.sp
+        )
+    }
+}
+
 @Composable
 private fun FestivalToggle(g: FestivalGroup, settings: CalendarSettings, onChange: (CalendarSettings) -> Unit) {
     ToggleRow(
@@ -286,10 +374,8 @@ private fun SectionLabel(text: String) {
 
 private fun festivalExamples(g: FestivalGroup) = when (g) {
     FestivalGroup.Kerala -> "Onam, Vishu, Thiruvathira, Makaravilakku, Chingam 1"
-    FestivalGroup.India -> "Republic Day, Independence Day, Gandhi Jayanti"
     FestivalGroup.Christian -> "Christmas, Easter, Good Friday, Pesaha"
     FestivalGroup.Islamic -> "Eid al-Fitr, Eid al-Adha, Ramadan, Milad-un-Nabi (expected dates)"
-    FestivalGroup.Uae -> "UAE National Day, Commemoration Day"
 }
 
 @Composable

@@ -28,6 +28,13 @@ Calendar is part of the [Numio](https://getnumio.org) family of open-source Andr
 
 Built by RR with help from Claude.
 
+## Credits
+
+- Country public holidays (2000–2050, built into the app, no internet) are made from the
+  [holidays](https://github.com/vacanza/holidays) library by the Vacanza team and contributors, MIT licence.
+- Malayalam calendar, star and festival dates are worked out on the phone with formulas from
+  Jean Meeus, *Astronomical Algorithms*.
+
 ## License
 
 [GPL-3.0](LICENSE)

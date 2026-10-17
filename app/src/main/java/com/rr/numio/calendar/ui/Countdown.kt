@@ -47,7 +47,9 @@ private val majors = mapOf(
     "Eid al-Adha" to "Eid al-Adha",
     "Ramadan begins" to "Ramadan",
     "Independence Day" to "Independence Day",
-    "UAE National Day" to "National Day",
+    "National Day" to "National Day",
+    "Diwali (Deepavali)" to "Deepavali",
+    "Diwali" to "Diwali",
 )
 
 private data class Countdown(val name: String, val date: LocalDate, val color: Color)
@@ -56,10 +58,11 @@ private data class Countdown(val name: String, val date: LocalDate, val color: C
 @Composable
 fun CountdownRow(today: LocalDate, settings: CalendarSettings, onGo: (LocalDate) -> Unit) {
     var chips by remember { mutableStateOf(emptyList<Countdown>()) }
-    LaunchedEffect(today, settings.festivals, settings.hijriAdjust) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(today, settings.festivals, settings.hijriAdjust, settings.countries) {
         chips = withContext(Dispatchers.Default) {
-            (Festivals.forYear(today.year, settings.festivals, settings.hijriAdjust) +
-                    Festivals.forYear(today.year + 1, settings.festivals, settings.hijriAdjust))
+            (com.rr.numio.calendar.data.Holidays.forYear(context, today.year, settings) +
+                    com.rr.numio.calendar.data.Holidays.forYear(context, today.year + 1, settings))
                 .filter { it.title in majors && !it.date.isBefore(today) }
                 .groupBy { it.title }
                 .map { (title, list) -> list.minBy { it.date }.let { Countdown(majors.getValue(title), it.date, chipColor(it.calendarName)) } }

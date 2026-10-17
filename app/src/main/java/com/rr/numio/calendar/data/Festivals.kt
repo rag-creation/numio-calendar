@@ -8,10 +8,8 @@ import java.time.LocalDate
 /** Groups of festivals and holidays, each switched on or off in Settings. */
 enum class FestivalGroup(val id: String, val label: String, val defaultOn: Boolean) {
     Kerala("kerala", "Kerala festivals", true),
-    India("india", "India national days", true),
     Christian("christian", "Christian festivals", true),
     Islamic("islamic", "Islamic festivals", true),
-    Uae("uae", "UAE national days", false),
 }
 
 /**
@@ -27,9 +25,7 @@ object Festivals {
             if (d != null && d.year == year && g in groups) list += Triple(d, title to note, g)
         }
         if (FestivalGroup.Kerala in groups) kerala(year).forEach { (d, t) -> add(FestivalGroup.Kerala, d, t.first, t.second) }
-        if (FestivalGroup.India in groups) india(year).forEach { (d, t) -> add(FestivalGroup.India, d, t) }
         if (FestivalGroup.Christian in groups) christian(year).forEach { (d, t) -> add(FestivalGroup.Christian, d, t) }
-        if (FestivalGroup.Uae in groups) uae(year).forEach { (d, t) -> add(FestivalGroup.Uae, d, t) }
         if (FestivalGroup.Islamic in groups) islamic(year, hijriAdjust).forEach { (d, t) ->
             add(FestivalGroup.Islamic, d, t, "Expected date. The actual day depends on the moon being sighted.")
         }
@@ -81,13 +77,6 @@ object Festivals {
         return null
     }
 
-    fun india(year: Int) = listOf(
-        LocalDate.of(year, 1, 1) to "New Year's Day",
-        LocalDate.of(year, 1, 26) to "Republic Day",
-        LocalDate.of(year, 8, 15) to "Independence Day",
-        LocalDate.of(year, 10, 2) to "Gandhi Jayanti",
-    )
-
     fun christian(year: Int): List<Pair<LocalDate, String>> {
         val easter = easter(year)
         return listOf(
@@ -98,11 +87,6 @@ object Festivals {
             LocalDate.of(year, 12, 25) to "Christmas",
         )
     }
-
-    fun uae(year: Int) = listOf(
-        LocalDate.of(year, 11, 30) to "Commemoration Day",
-        LocalDate.of(year, 12, 2) to "UAE National Day",
-    )
 
     /** Hijri festivals that fall in [year] (Umm al-Qura, with the moon-sighting adjustment). */
     fun islamic(year: Int, adjust: Int): List<Pair<LocalDate, String>> {

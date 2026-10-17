@@ -139,7 +139,7 @@ fun MonthScreen(
         }
 
         // Countdown to the next big festivals
-        CountdownRow(today, settings) { d -> onMonth(YearMonth.from(d)); onSelect(d) }
+        if (settings.countdown) CountdownRow(today, settings) { d -> onMonth(YearMonth.from(d)); onSelect(d) }
 
         // Weekday row
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {

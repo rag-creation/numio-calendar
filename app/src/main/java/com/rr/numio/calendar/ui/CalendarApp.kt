@@ -96,12 +96,12 @@ fun CalendarApp() {
     LaunchedEffect(Unit) { Reminders.schedule(context) }
 
     // Festivals: worked out per year in the background, then kept.
-    LaunchedEffect(month, shown.festivals, settings.hijriAdjust) {
+    LaunchedEffect(month, shown.festivals, settings.hijriAdjust, settings.countries) {
         val years = listOf(month.atDay(1).minusDays(7).year, month.atEndOfMonth().plusDays(7).year).distinct()
         festivalEvents = withContext(Dispatchers.Default) {
             years.flatMap { y ->
-                val key = "$y/${shown.festivals.sorted()}/${settings.hijriAdjust}"
-                festivalCache.getOrPut(key) { Festivals.forYear(y, shown.festivals, settings.hijriAdjust) }
+                val key = "$y/${shown.festivals.sorted()}/${settings.hijriAdjust}/${settings.countries}"
+                festivalCache.getOrPut(key) { com.rr.numio.calendar.data.Holidays.forYear(context, y, shown) }
             }
         }
     }
