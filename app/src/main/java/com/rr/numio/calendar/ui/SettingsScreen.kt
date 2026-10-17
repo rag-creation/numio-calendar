@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -64,6 +65,16 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindS
     }
     val phoneOn = settings.phoneCalendars && PhoneCalendar.hasPermission(context)
 
+    var regionalPage by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = regionalPage) { regionalPage = false }
+    if (regionalPage) {
+        RegionalCalendarsPage(settings, onFindStar, onBack = { regionalPage = false }, onChange = onChange)
+        return
+    }
+    val version = remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -73,96 +84,64 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindS
     ) {
         Text("Settings", color = NumioText, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
 
+        // Regional calendars: one switch here, everything else on its own page.
         Card {
-            ToggleRow(
-                title = "Malayalam & Hijri calendars",
-                text = if (settings.regional) "Malayalam date and star, Hijri date, Kerala and Islamic festivals. Turn off for a plain calendar."
-                       else "Off: a plain calendar. Turn on for the Malayalam date and star, Hijri date, Kerala and Islamic festivals.",
-                checked = settings.regional,
-                onChange = { onChange(settings.copy(regional = it)) }
-            )
-        }
-
-        if (settings.regional) {
-            SectionLabel("MALAYALAM CALENDAR")
-            Card {
-                ToggleRow(
-                    title = "Malayalam layer",
-                    text = "Kollavarsham date under each day, and the day's star (nakshatram). Worked out on the phone for Kerala.",
-                    checked = settings.malayalamLayer,
-                    onChange = { onChange(settings.copy(malayalamLayer = it)) }
-                )
-                if (settings.malayalamLayer) {
-                    val m = Kollavarsham.of(LocalDate.now())
-                    Text(
-                        "Today: " + m.malayalam + " · " + m.starMl,
-                        color = MalayalamGold,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                }
-            }
-            Card {
-                Row(
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(
                     Modifier
-                        .fillMaxWidth()
-                        .clickable(role = Role.Button, onClick = onFindStar)
-                        .padding(vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(role = Role.Button, onClickLabel = "Open regional calendars") { regionalPage = true }
+                        .padding(vertical = 14.dp)
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Find my star · ജന്മനക്ഷത്രം", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Text("Birth star, pada and kooru from a birth date and time, and a yearly പിറന്നാൾ.", color = NumioMuted, fontSize = 13.sp)
-                    }
-                    Text("›", color = MalayalamGold, fontSize = 24.sp)
-                }
-            }
-
-        }
-
-        SectionLabel("FESTIVALS")
-        Card {
-            FestivalGroup.entries.filter { settings.regional || it !in listOf(FestivalGroup.Kerala, FestivalGroup.Islamic) }.forEach { g ->
-                ToggleRow(
-                    title = g.label,
-                    text = festivalExamples(g),
-                    checked = g in settings.festivals,
-                    onChange = { on ->
-                        onChange(settings.copy(festivals = if (on) settings.festivals + g else settings.festivals - g))
-                    }
-                )
-            }
-        }
-
-        SectionLabel("PHONE CALENDARS")
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(NumioCard)
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .toggleable(value = phoneOn, role = Role.Switch, onValueChange = ::setPhoneCalendars)
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Show phone calendars", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Regional calendars ›", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        "Events from the calendars on this phone, like Google or Samsung, in blue. Read-only: Calendar never changes them.",
-                        color = NumioMuted,
+                        if (!settings.regional) "Off · a plain calendar"
+                        else listOfNotNull(
+                            "Malayalam".takeIf { settings.malayalamLayer },
+                            "Hijri".takeIf { settings.hijriLayer },
+                        ).ifEmpty { listOf("On") }.joinToString(" · ") + " · festivals and more",
+                        color = if (settings.regional) MalayalamGold else NumioMuted,
                         fontSize = 13.sp
                     )
                 }
                 Switch(
-                    checked = phoneOn,
-                    onCheckedChange = null,
+                    checked = settings.regional,
+                    onCheckedChange = { onChange(settings.copy(regional = it)) },
                     colors = SwitchDefaults.colors(checkedThumbColor = NumioInk, checkedTrackColor = NumioYellow)
                 )
             }
+        }
+
+        SectionLabel("GENERAL")
+        Card {
+            Text("Week starts on", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
+            Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(java.time.DayOfWeek.SUNDAY, java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.SATURDAY).forEach { d ->
+                    Choice(
+                        d.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()),
+                        settings.weekStart == d,
+                        Modifier.weight(1f)
+                    ) { onChange(settings.copy(weekStart = d)) }
+                }
+            }
+        }
+
+        SectionLabel("HOLIDAYS")
+        Card {
+            listOf(FestivalGroup.India, FestivalGroup.Christian, FestivalGroup.Uae).forEach { g ->
+                FestivalToggle(g, settings, onChange)
+            }
+        }
+
+        SectionLabel("PHONE CALENDARS")
+        Card {
+            ToggleRow(
+                title = "Show phone calendars",
+                text = "Events from the calendars on this phone, like Google or Samsung, in blue. Read-only: Calendar never changes them.",
+                checked = phoneOn,
+                onChange = ::setPhoneCalendars
+            )
             if (denied) {
                 Text(
                     "Calendar permission was not given. You can allow it in Android Settings → Apps → Calendar → Permissions.",
@@ -173,97 +152,123 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindS
             }
         }
 
-        if (settings.regional) {
-            SectionLabel("HIJRI CALENDAR")
-            Column(
+        SectionLabel("ABOUT")
+        Card {
+            Column(Modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Calendar by Numio" + if (version.isNotEmpty()) " · $version" else "", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("No ads · No tracking · No internet. Everything is worked out and kept on this phone.", color = NumioMuted, fontSize = 13.sp)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Malayalam and Hijri calendars, Find my star and their festivals, all on one page. */
+@Composable
+private fun RegionalCalendarsPage(
+    settings: CalendarSettings,
+    onFindStar: () -> Unit,
+    onBack: () -> Unit,
+    onChange: (CalendarSettings) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ArrowButton(left = true, label = "Back", onClick = onBack)
+            Text("Regional calendars", color = NumioText, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 12.dp))
+        }
+        Card {
+            ToggleRow(
+                title = "Use regional calendars",
+                text = if (settings.regional) "On. Turn off for a plain calendar; your choices below are kept."
+                       else "Off: a plain calendar. Turn on for the Malayalam and Hijri calendars and their festivals.",
+                checked = settings.regional,
+                onChange = { onChange(settings.copy(regional = it)) }
+            )
+        }
+        if (!settings.regional) return@Column
+
+        SectionLabel("MALAYALAM · മലയാളം")
+        Card {
+            ToggleRow(
+                title = "Malayalam layer",
+                text = "Kollavarsham date under each day, and the day's star (nakshatram). Worked out on the phone for Kerala.",
+                checked = settings.malayalamLayer,
+                onChange = { onChange(settings.copy(malayalamLayer = it)) }
+            )
+            if (settings.malayalamLayer) {
+                val m = remember { Kollavarsham.of(LocalDate.now()) }
+                Text("Today: " + m.malayalam + " · " + m.starMl, color = MalayalamGold, fontSize = 14.sp, modifier = Modifier.padding(bottom = 12.dp))
+            }
+            FestivalToggle(FestivalGroup.Kerala, settings, onChange)
+            Row(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(NumioCard)
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clickable(role = Role.Button, onClick = onFindStar)
+                    .padding(vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .toggleable(
-                            value = settings.hijriLayer,
-                            role = Role.Switch,
-                            onValueChange = { onChange(settings.copy(hijriLayer = it)) }
-                        )
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Hijri layer", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Text(
-                            "Islamic date under each day (Umm al-Qura, built into Android, works offline)",
-                            color = NumioMuted,
-                            fontSize = 13.sp
-                        )
-                    }
-                    Switch(
-                        checked = settings.hijriLayer,
-                        onCheckedChange = null,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = NumioInk,
-                            checkedTrackColor = NumioYellow
-                        )
-                    )
+                Column(Modifier.weight(1f)) {
+                    Text("Find my star · ജന്മനക്ഷത്രം", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Birth star, pada and kooru from a birth date and time, and a yearly പിറന്നാൾ.", color = NumioMuted, fontSize = 13.sp)
                 }
-
-                if (settings.hijriLayer) {
-                    Column(Modifier.padding(top = 6.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Moon sighting adjustment", color = NumioText, fontSize = 15.sp)
-                        Text(
-                            "Match your country or mosque. Kerala often starts a month a day after the Gulf: choose −1 day.",
-                            color = NumioMuted,
-                            fontSize = 13.sp
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(-1 to "−1 day", 0 to "0", 1 to "+1 day").forEach { (value, label) ->
-                                val on = settings.hijriAdjust == value
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(44.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(if (on) Color(0xFF2A2410) else Color(0xFF161616))
-                                        .border(
-                                            if (on) 2.dp else 1.dp,
-                                            if (on) NumioYellow else Color(0xFF333333),
-                                            RoundedCornerShape(12.dp)
-                                        )
-                                        .clickable(role = Role.RadioButton) {
-                                            onChange(settings.copy(hijriAdjust = value))
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        label,
-                                        color = if (on) NumioYellow else NumioText,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (on) FontWeight.Bold else FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                        Text(
-                            "Today: " + Hijri.of(LocalDate.now(), settings.hijriAdjust).english,
-                            color = HijriGreen,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
+                Text("›", color = MalayalamGold, fontSize = 24.sp)
             }
         }
 
-        Text(
-            "No ads · No tracking · No internet",
-            color = NumioMuted,
-            fontSize = 12.sp,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+        SectionLabel("HIJRI · هجري")
+        Card {
+            ToggleRow(
+                title = "Hijri layer",
+                text = "Islamic date under each day (Umm al-Qura, built into Android, works offline).",
+                checked = settings.hijriLayer,
+                onChange = { onChange(settings.copy(hijriLayer = it)) }
+            )
+            Text("Moon sighting adjustment", color = NumioText, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(
+                "Match your country or mosque. Kerala often starts a month a day after the Gulf: choose −1 day. Also moves the Islamic festivals.",
+                color = NumioMuted,
+                fontSize = 13.sp
+            )
+            Row(Modifier.padding(vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(-1 to "−1 day", 0 to "0", 1 to "+1 day").forEach { (value, label) ->
+                    Choice(label, settings.hijriAdjust == value, Modifier.weight(1f)) { onChange(settings.copy(hijriAdjust = value)) }
+                }
+            }
+            Text("Today: " + Hijri.of(LocalDate.now(), settings.hijriAdjust).english, color = HijriGreen, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
+            FestivalToggle(FestivalGroup.Islamic, settings, onChange)
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun FestivalToggle(g: FestivalGroup, settings: CalendarSettings, onChange: (CalendarSettings) -> Unit) {
+    ToggleRow(
+        title = g.label,
+        text = festivalExamples(g),
+        checked = g in settings.festivals,
+        onChange = { on -> onChange(settings.copy(festivals = if (on) settings.festivals + g else settings.festivals - g)) }
+    )
+}
+
+@Composable
+private fun Choice(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (on) Color(0xFF2A2410) else Color(0xFF161616))
+            .border(if (on) 2.dp else 1.dp, if (on) NumioYellow else Color(0xFF333333), RoundedCornerShape(12.dp))
+            .clickable(role = Role.RadioButton, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = if (on) NumioYellow else NumioText, fontSize = 14.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
     }
 }
 

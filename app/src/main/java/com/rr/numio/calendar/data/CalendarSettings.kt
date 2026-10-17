@@ -11,6 +11,7 @@ data class CalendarSettings(
     val festivals: Set<FestivalGroup> = FestivalGroup.entries.filter { it.defaultOn }.toSet(),
     val regional: Boolean = true,      // Malayalam & Hijri calendars; off = a plain calendar
     val welcomed: Boolean = false,     // the first-launch question was answered
+    val weekStart: java.time.DayOfWeek = java.time.DayOfWeek.SUNDAY,
 ) {
     /**
      * What the calendar actually shows. With [regional] off, the Malayalam and Hijri layers and the
@@ -31,6 +32,7 @@ data class CalendarSettings(
         private const val FESTIVALS = "festivals"
         private const val REGIONAL = "regional"
         private const val WELCOMED = "welcomed"
+        private const val WEEK_START = "week_start"
 
         fun load(context: Context): CalendarSettings {
             val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -44,6 +46,7 @@ data class CalendarSettings(
                     ?: CalendarSettings().festivals,
                 regional = p.getBoolean(REGIONAL, true),
                 welcomed = p.getBoolean(WELCOMED, false),
+                weekStart = java.time.DayOfWeek.of(p.getInt(WEEK_START, 7).coerceIn(1, 7)),
             )
         }
 
@@ -56,6 +59,7 @@ data class CalendarSettings(
                 .putStringSet(FESTIVALS, s.festivals.map { it.id }.toSet())
                 .putBoolean(REGIONAL, s.regional)
                 .putBoolean(WELCOMED, s.welcomed)
+                .putInt(WEEK_START, s.weekStart.value)
                 .apply()
         }
     }

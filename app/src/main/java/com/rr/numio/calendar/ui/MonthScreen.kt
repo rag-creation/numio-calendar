@@ -143,7 +143,7 @@ fun MonthScreen(
 
         // Weekday row
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-            MonthGrid.weekdays().forEach { day ->
+            MonthGrid.weekdays(settings.weekStart).forEach { day ->
                 Text(
                     text = day.getDisplayName(TextStyle.NARROW, locale),
                     modifier = Modifier.weight(1f),
@@ -184,7 +184,7 @@ fun MonthScreen(
                 if (settings.malayalamLayer) Kollavarsham.range(shown.atDay(1), shown.atEndOfMonth()) else emptyMap()
             }
             Column(Modifier.fillMaxSize()) {
-                MonthGrid.cells(shown).chunked(7).forEach { week ->
+                MonthGrid.cells(shown, settings.weekStart).chunked(7).forEach { week ->
                     Row(Modifier.fillMaxWidth().weight(1f)) {
                         week.forEach { date ->
                             Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
