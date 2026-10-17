@@ -44,7 +44,14 @@ import com.rr.numio.calendar.hijri.Hijri
 import java.time.LocalDate
 
 @Composable
-fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindStar: () -> Unit, onChange: (CalendarSettings) -> Unit) {
+fun SettingsScreen(
+    settings: CalendarSettings,
+    events: List<com.rr.numio.calendar.data.Event>,
+    onPermission: () -> Unit,
+    onFindStar: () -> Unit,
+    onRestore: (events: List<com.rr.numio.calendar.data.Event>, settings: CalendarSettings?) -> Unit,
+    onChange: (CalendarSettings) -> Unit,
+) {
     val context = LocalContext.current
     var denied by remember { mutableStateOf(false) }
     val askCalendar = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -67,7 +74,66 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindS
 
     var regionalPage by remember { mutableStateOf(false) }
     var countriesPage by remember { mutableStateOf(false) }
-    androidx.activity.compose.BackHandler(enabled = regionalPage || countriesPage) { regionalPage = false; countriesPage = false }
+    var creditsPage by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = regionalPage || countriesPage || creditsPage) {
+        regionalPage = false; countriesPage = false; creditsPage = false
+    }
+    if (creditsPage) {
+        CreditsPage(onBack = { creditsPage = false })
+        return
+    }
+
+    // Backup: write a .numio file where the person chooses; restore reads one back.
+    var pendingRestore by remember { mutableStateOf<com.rr.numio.calendar.data.Backup.Contents?>(null) }
+    val saveBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val ok = runCatching {
+            context.contentResolver.openOutputStream(uri, "wt")!!.use {
+                it.write(com.rr.numio.calendar.data.Backup.write(events, settings).toByteArray())
+            }
+        }.isSuccess
+        android.widget.Toast.makeText(context, if (ok) "Backup saved: ${events.size} events" else "Couldn't save the backup", android.widget.Toast.LENGTH_SHORT).show()
+    }
+    val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val read = runCatching {
+            val text = context.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() }
+            com.rr.numio.calendar.data.Backup.read(text, settings)
+        }
+        read.onSuccess { pendingRestore = it }
+            .onFailure { android.widget.Toast.makeText(context, "That file isn't a Calendar backup", android.widget.Toast.LENGTH_SHORT).show() }
+    }
+    pendingRestore?.let { b ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            containerColor = NumioCard,
+            title = { Text("Restore backup?", color = NumioText) },
+            text = {
+                Text(
+                    "The backup has ${b.events.size} events. You have ${events.size} now.\n\n" +
+                        "Replace: use the backup's events and settings instead of yours.\n" +
+                        "Add: keep yours and add the backup's events you don't have.",
+                    color = NumioMuted
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    onRestore(b.events, b.settings); pendingRestore = null
+                    android.widget.Toast.makeText(context, "Restored ${b.events.size} events", android.widget.Toast.LENGTH_SHORT).show()
+                }) { Text("Replace", color = NumioSunday) }
+            },
+            dismissButton = {
+                Row {
+                    androidx.compose.material3.TextButton(onClick = { pendingRestore = null }) { Text("Cancel", color = NumioMuted) }
+                    androidx.compose.material3.TextButton(onClick = {
+                        val merged = com.rr.numio.calendar.data.Backup.merge(events, b.events)
+                        onRestore(merged, null); pendingRestore = null
+                        android.widget.Toast.makeText(context, "Added ${merged.size - events.size} events", android.widget.Toast.LENGTH_SHORT).show()
+                    }) { Text("Add", color = NumioYellow) }
+                }
+            }
+        )
+    }
     if (regionalPage) {
         RegionalCalendarsPage(settings, onFindStar, onBack = { regionalPage = false }, onChange = onChange)
         return
@@ -180,12 +246,23 @@ fun SettingsScreen(settings: CalendarSettings, onPermission: () -> Unit, onFindS
             }
         }
 
+        SectionLabel("BACKUP")
+        Card {
+            LinkRow("Back up to a file", "Your events and settings in one .numio file. Keep it somewhere safe, like Downloads or a USB stick.") {
+                saveBackup.launch("Calendar-" + LocalDate.now() + ".numio")
+            }
+            LinkRow("Restore from a file", "Bring back a Calendar backup, on this phone or a new one.") {
+                openBackup.launch(arrayOf("*/*"))
+            }
+        }
+
         SectionLabel("ABOUT")
         Card {
             Column(Modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Calendar by Numio" + if (version.isNotEmpty()) " · $version" else "", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Text("No ads · No tracking · No internet. Everything is worked out and kept on this phone.", color = NumioMuted, fontSize = 13.sp)
             }
+            LinkRow("Credits & licences", "Where the data and maths come from, and the app's own licence.") { creditsPage = true }
         }
         Spacer(Modifier.height(8.dp))
     }
@@ -332,6 +409,92 @@ private fun CountryHolidaysPage(settings: CalendarSettings, onBack: () -> Unit, 
             "Built into the app, no internet: public holidays 2000–2050 from the open-source holidays library (MIT licence). Moon-based dates are expected dates.",
             color = NumioMuted, fontSize = 12.sp
         )
+    }
+}
+
+@Composable
+private fun LinkRow(title: String, text: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(text, color = NumioMuted, fontSize = 13.sp)
+        }
+        Text("›", color = NumioYellow, fontSize = 24.sp)
+    }
+}
+
+/** Credits & licences: who made what this app is built on. */
+@Composable
+private fun CreditsPage(onBack: () -> Unit) {
+    val context = LocalContext.current
+    var showMit by remember { mutableStateOf(false) }
+    val mit = remember {
+        runCatching { context.assets.open("holidays-LICENSE.txt").bufferedReader().readText() }.getOrDefault("")
+    }
+    fun open(url: String) {
+        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+    }
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ArrowButton(left = true, label = "Back", onClick = onBack)
+            Text("Credits & licences", color = NumioText, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 12.dp))
+        }
+        Card {
+            Credit(
+                "Calendar by Numio",
+                "Made by RR. Free and open source under the GNU GPL v3.0.",
+                "Source code ›"
+            ) { open("https://github.com/rag-creation/numio-calendar") }
+        }
+        Card {
+            Credit(
+                "Country holidays",
+                "Public holidays for 249 countries are made from the holidays library by the Vacanza team and contributors (MIT licence). They are built into the app; nothing is downloaded.",
+                if (showMit) "Hide licence" else "Show licence"
+            ) { showMit = !showMit }
+            if (showMit) Text(mit, color = NumioMuted, fontSize = 11.sp, modifier = Modifier.padding(bottom = 14.dp))
+        }
+        Card {
+            Credit(
+                "Malayalam calendar",
+                "Malayalam dates, stars, sunrise and festival days are worked out on the phone with formulas from Jean Meeus, Astronomical Algorithms, and the Lahiri ayanamsa. Checked against published Kerala calendars.",
+                null
+            ) {}
+        }
+        Card {
+            Credit(
+                "Hijri calendar",
+                "Hijri dates come from the Umm al-Qura calendar built into Android (ICU, Unicode licence).",
+                null
+            ) {}
+        }
+        Card {
+            Credit(
+                "Android & Jetpack Compose",
+                "Built with AndroidX and Jetpack Compose by Google (Apache licence 2.0).",
+                null
+            ) {}
+        }
+    }
+}
+
+@Composable
+private fun Credit(title: String, text: String, action: String?, onAction: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = NumioMuted, fontSize = 13.sp)
+        if (action != null) {
+            Text(
+                action, color = NumioYellow, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onAction).padding(vertical = 6.dp)
+            )
+        }
     }
 }
 

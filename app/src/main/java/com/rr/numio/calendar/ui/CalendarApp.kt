@@ -163,7 +163,17 @@ fun CalendarApp() {
                     onDay = { selected = it; month = YearMonth.from(it) },
                     onFindStar = { findStar = it }
                 )
-                Tab.Settings -> SettingsScreen(settings, onPermission = { phoneVersion++ }, onFindStar = { findStar = today }, onChange = ::update)
+                Tab.Settings -> SettingsScreen(
+                    settings = settings,
+                    events = events,
+                    onPermission = { phoneVersion++ },
+                    onFindStar = { findStar = today },
+                    onRestore = { restored, s ->
+                        saveEvents(restored)
+                        if (s != null) update(s)
+                    },
+                    onChange = ::update
+                )
             }
             // The yellow + : a new event on the selected day.
             if (tab != Tab.Settings) {
