@@ -1,12 +1,14 @@
 # Makes the per-country tables (zipped into app/src/main/assets/holidays.zip) from a checkout of https://github.com/vacanza/holidays (MIT).
-# Run: python3 tools/po_to_mo.py <holidays>/holidays/locale && python3 tools/make_holidays.py
-# (edit the two paths below first). Tables were made from holidays commit d3261e8.
-# Then zip the tables: cd out && zip -X -9 holidays.zip *.txt (and copy it to app/src/main/assets/).
+# Run: python3 tools/po_to_mo.py <holidays>/holidays/locale && python3 tools/make_holidays.py <holidays> <out>
+# where <holidays> is the holidays checkout and <out> an empty folder. Tables were made from holidays commit d3261e8.
+# Then zip the tables: cd <out> && zip -X -9 holidays.zip *.txt (and copy it to app/src/main/assets/).
 import sys, os, warnings
-sys.path.insert(0, '/tmp/claude-0/hol/holidays')
+if len(sys.argv) != 3:
+    sys.exit('usage: make_holidays.py <holidays checkout> <output folder>')
+sys.path.insert(0, sys.argv[1])
 warnings.filterwarnings('ignore')
 import holidays
-out='/tmp/claude-0/hol/out'
+out=sys.argv[2]
 years=range(2000, 2051)
 countries=holidays.list_supported_countries()
 done=[]

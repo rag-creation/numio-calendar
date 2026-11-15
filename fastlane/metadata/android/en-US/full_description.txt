@@ -1,0 +1,20 @@
+<p>Calendar by Numio is a private, offline calendar. It has no internet permission, so nothing you add ever leaves your phone. No account, no ads, no tracking.</p>
+
+<p><b>For everyone</b></p>
+<ul>
+<li>Month and day views; jump to any date from 1900 to 2199</li>
+<li>Events with times or all day, a note, and a colour for personal or work</li>
+<li>Repeats every week, month or year</li>
+<li>Reminders at the time, or minutes, hours, a day or a week before</li>
+<li>Public holidays for 249 countries (2000–2050), built into the app</li>
+<li>Festival countdown chips under the month name</li>
+<li>Your phone's calendars (Google, Samsung and others), shown read-only if you allow it</li>
+<li>Backup and restore to a single .numio file</li>
+<li>Week starts on Sunday, Monday or Saturday</li>
+</ul>
+
+<p><b>Regional calendars (optional)</b></p>
+<p>Malayalam calendar (Kollavarsham): the Malayalam date and the day's star (nakshatram) under every day, Find my star from a birth date and time, repeats by star (pirannal, Shraddham) or by Malayalam date, and Kerala festivals such as Onam, Vishu and Thiruvathira.</p>
+<p>Hijri calendar: the Hijri date under every day (Umm al-Qura), a moon-sighting adjustment of −1, 0 or +1 day, Islamic festivals shown as expected dates, and repeats by Hijri date.</p>
+
+<p>Everything, from sunrise times to festival dates, is worked out on the phone itself. Country holidays are generated from the open-source holidays library (MIT).</p>
