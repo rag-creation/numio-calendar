@@ -73,12 +73,13 @@ fun MonthScreen(
     val hijriOn = settings.hijriLayer
     val adjust = settings.hijriAdjust
     var goTo by remember { mutableStateOf(false) }
+    var yearView by remember { mutableStateOf<Int?>(null) }   // the year shown in the year view, or closed
     if (goTo) {
         GoToDateDialog(
             start = selected,
             today = today,
             settings = settings,
-            onGo = { d -> goTo = false; onMonth(YearMonth.from(d)); onSelect(d) },
+            onGo = { d -> goTo = false; yearView = null; onMonth(YearMonth.from(d)); onSelect(d) },
             onClose = { goTo = false }
         )
     }
@@ -86,6 +87,20 @@ fun MonthScreen(
     val onMonthState = rememberUpdatedState(onMonth)
     val malayalam = remember(month, settings.malayalamLayer) {
         if (settings.malayalamLayer) Kollavarsham.range(month.atDay(1), month.atEndOfMonth()) else emptyMap()
+    }
+
+    // The year view: opens from the month title, Back returns to the month
+    androidx.activity.compose.BackHandler(enabled = yearView != null) { yearView = null }
+    yearView?.let { y ->
+        YearView(
+            year = y,
+            today = today,
+            settings = settings,
+            onYear = { yearView = it },
+            onPickMonth = { m -> yearView = null; onMonth(m) },
+            onGoToDate = { goTo = true }
+        )
+        return
     }
 
     Column(
@@ -104,7 +119,7 @@ fun MonthScreen(
                 Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable(role = Role.Button, onClickLabel = "Go to date") { goTo = true }
+                    .clickable(role = Role.Button, onClickLabel = "Year view") { yearView = month.year }
             ) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
