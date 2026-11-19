@@ -172,12 +172,18 @@ private fun MiniMonth(
         cells.chunked(7).forEach { week ->
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { date ->
-                    Box(Modifier.weight(1f).padding(vertical = 1.dp), contentAlignment = Alignment.Center) {
+                    val isToday = date == today
+                    val ring = NumioYellow
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .padding(vertical = 1.dp)
+                            // Today's circle fits inside its own cell, so it never covers the days beside it
+                            .then(if (isToday) Modifier.drawBehind { drawCircle(ring, radius = minOf(size.width, size.height) / 2f) } else Modifier),
+                        contentAlignment = Alignment.Center
+                    ) {
                         if (date != null) {
-                            val isToday = date == today
-                            val ring = NumioYellow
                             Text(
-                                modifier = if (isToday) Modifier.drawBehind { drawCircle(ring, radius = size.maxDimension / 2f + 2f) } else Modifier,
                                 maxLines = 1,
                                 softWrap = false,
                                 text = date.dayOfMonth.toString(),
