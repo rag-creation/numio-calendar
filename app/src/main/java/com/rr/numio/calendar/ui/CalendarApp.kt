@@ -150,6 +150,12 @@ fun CalendarApp() {
         CalendarSettings.save(context, s)
     }
 
+    // Back from Day or Settings goes to the month of the day you were on; Back on Month closes the app.
+    androidx.activity.compose.BackHandler(enabled = tab != Tab.Month) {
+        month = YearMonth.from(selected)
+        tab = Tab.Month
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -165,7 +171,11 @@ fun CalendarApp() {
                     settings = shown,
                     events = byDate,
                     onOpenEvent = ::openEvent,
-                    onMonth = { month = it },
+                    onMonth = { m ->
+                        month = m
+                        // The card follows the month on screen: today in this month, else the 1st
+                        if (YearMonth.from(selected) != m) selected = if (m == YearMonth.from(today)) today else m.atDay(1)
+                    },
                     onSelect = { selected = it },
                     onOpenDay = { selected = it; tab = Tab.Day }
                 )

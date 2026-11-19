@@ -44,6 +44,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -139,6 +141,21 @@ fun MonthScreen(
         // Countdown to the next big festivals
         if (settings.countdown) CountdownRow(today, settings) { d -> onMonth(YearMonth.from(d)); onSelect(d) }
 
+        // Swipe the day card up: every event of this month in one list
+        var allEvents by remember { mutableStateOf(false) }
+        androidx.activity.compose.BackHandler(enabled = allEvents) { allEvents = false }
+        if (allEvents) {
+            MonthEventsPanel(
+                month = month,
+                events = events,
+                locale = locale,
+                onOpenEvent = onOpenEvent,
+                onPickDay = { d -> onSelect(d); allEvents = false },
+                onClose = { allEvents = false },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.size(12.dp))
+        } else {
         // Weekday row
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             MonthGrid.weekdays(settings.weekStart).forEach { day ->
@@ -206,11 +223,87 @@ fun MonthScreen(
         }
 
         Spacer(Modifier.size(12.dp))
-        SelectedDayCard(selected, today, settings, events[selected].orEmpty().sortedForDay(), locale, onOpenEvent, onOpen = { onOpenDay(selected) }) {
+        SelectedDayCard(selected, today, settings, events[selected].orEmpty().sortedForDay(), locale, onOpenEvent, onOpen = { onOpenDay(selected) }, onShowMonth = { allEvents = true }) {
             onMonth(YearMonth.from(today))
             onSelect(today)
         }
         Spacer(Modifier.size(12.dp))
+        }
+    }
+}
+
+/** Every event of [month], grouped by day. Tap a day to pick it; swipe down or Back to close. */
+@Composable
+private fun MonthEventsPanel(
+    month: YearMonth,
+    events: Map<LocalDate, List<Event>>,
+    locale: Locale,
+    onOpenEvent: (Event) -> Unit,
+    onPickDay: (LocalDate) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val days = remember(month, events) {
+        events.filterKeys { YearMonth.from(it) == month }
+            .map { (date, list) -> date to list.sortedForDay() }
+            .filter { it.second.isNotEmpty() }
+            .sortedBy { it.first.toEpochDay() }
+    }
+    val swipeDown = with(androidx.compose.ui.platform.LocalDensity.current) { 48.dp.toPx() }
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(NumioCard)
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .pointerInput(Unit) {
+                    var dragged = 0f
+                    detectVerticalDragGestures(
+                        onDragStart = { dragged = 0f },
+                        onVerticalDrag = { _, dy -> dragged += dy },
+                        onDragEnd = { if (dragged > swipeDown) onClose() }
+                    )
+                }
+                .clickable(role = Role.Button, onClickLabel = "Back to the month") { onClose() }
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp)
+        ) {
+            Box(Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(NumioMuted.copy(alpha = 0.5f)))
+            }
+            Text(
+                "All events in " + month.month.getDisplayName(TextStyle.FULL, locale) + " " + month.year,
+                color = NumioText, fontSize = 17.sp, fontWeight = FontWeight.Bold
+            )
+        }
+        if (days.isEmpty()) {
+            Text("Nothing this month · tap + to add an event", color = NumioMuted, fontSize = 14.sp, modifier = Modifier.padding(16.dp))
+        } else {
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp)) {
+                days.forEach { (date, list) ->
+                    item(key = "d$date") {
+                        Text(
+                            date.dayOfWeek.getDisplayName(TextStyle.FULL, locale) + " " + date.dayOfMonth + " " +
+                                date.month.getDisplayName(TextStyle.SHORT, locale),
+                            color = NumioYellow,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(role = Role.Button, onClickLabel = "Pick this day") { onPickDay(date) }
+                                .padding(top = 14.dp, bottom = 2.dp)
+                        )
+                    }
+                    list.forEachIndexed { i, e ->
+                        item(key = "e$date-$i-${e.id}") { EventRow(e) { onOpenEvent(e) } }
+                    }
+                }
+                item { Spacer(Modifier.size(80.dp)) } // room for the + button
+            }
+        }
     }
 }
 
@@ -316,22 +409,43 @@ private fun SelectedDayCard(
     locale: Locale,
     onOpenEvent: (Event) -> Unit,
     onOpen: () -> Unit,
+    onShowMonth: () -> Unit,
     onToday: () -> Unit
 ) {
+    val swipeUp = with(androidx.compose.ui.platform.LocalDensity.current) { 48.dp.toPx() }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .background(NumioCard)
+            .pointerInput(Unit) {
+                var dragged = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { dragged = 0f },
+                    onVerticalDrag = { _, dy -> dragged += dy },
+                    onDragEnd = { if (dragged < -swipeUp) onShowMonth() }
+                )
+            }
             .clickable(role = Role.Button, onClickLabel = "Open day") { onOpen() }
-            .padding(16.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        // The handle: swipe up (or tap it) for all of this month's events
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClickLabel = "Show all events this month") { onShowMonth() }
+                .padding(top = 8.dp, bottom = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(NumioMuted.copy(alpha = 0.5f)))
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = (if (day == today) "Today · " else "") +
                         day.dayOfWeek.getDisplayName(TextStyle.FULL, locale) + " " +
-                        day.dayOfMonth + " " + day.month.getDisplayName(TextStyle.SHORT, locale),
+                        day.dayOfMonth + " " + day.month.getDisplayName(TextStyle.SHORT, locale) +
+                        (if (day.year != today.year) " " + day.year else ""),
                 color = NumioText,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
@@ -390,16 +504,34 @@ fun EventRow(e: Event, big: Boolean = false, onClick: () -> Unit) {
         Spacer(Modifier.size(12.dp))
         Column {
             Text(e.title, color = NumioText, fontSize = if (big) 16.sp else 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Text(
-                e.timeText() + (if (e.repeat.repeats) " · ↻" else "") + (if (e.reminder >= 0) " · 🔔" else "") + " · " + when {
-                    e.category == Category.Festival -> e.note.ifEmpty { "Festival" }
-                    e.external && e.calendarName.isNotEmpty() -> e.calendarName
-                    else -> e.category.label
-                },
-                color = NumioMuted,
-                fontSize = 12.sp,
-                maxLines = 1
-            )
+            // "All day · [repeat] · [bell] · Personal": small drawn icons, not emoji, so they match the theme
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(e.timeText(), color = NumioMuted, fontSize = 12.sp, maxLines = 1)
+                if (e.repeat.repeats) {
+                    Text(" · ", color = NumioMuted, fontSize = 12.sp)
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Filled.Refresh, contentDescription = "Repeats",
+                        tint = NumioMuted, modifier = Modifier.size(13.dp)
+                    )
+                }
+                if (e.reminder >= 0) {
+                    Text(" · ", color = NumioMuted, fontSize = 12.sp)
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Filled.Notifications, contentDescription = "Reminder",
+                        tint = NumioMuted, modifier = Modifier.size(13.dp)
+                    )
+                }
+                Text(
+                    " · " + when {
+                        e.category == Category.Festival -> e.note.ifEmpty { "Festival" }
+                        e.external && e.calendarName.isNotEmpty() -> e.calendarName
+                        else -> e.category.label
+                    },
+                    color = NumioMuted,
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
+            }
             e.secondZoneText()?.let { Text(it, color = NumioYellow, fontSize = 12.sp, maxLines = 1) }
         }
     }
