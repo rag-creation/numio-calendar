@@ -180,7 +180,7 @@ private fun MiniMonth(
                                 modifier = if (isToday) Modifier.drawBehind { drawCircle(ring, radius = size.maxDimension / 2f + 2f) } else Modifier,
                                 maxLines = 1,
                                 softWrap = false,
-                                date.dayOfMonth.toString(),
+                                text = date.dayOfMonth.toString(),
                                 color = when {
                                     isToday -> NumioInk
                                     date.dayOfWeek == DayOfWeek.SUNDAY -> NumioSunday
