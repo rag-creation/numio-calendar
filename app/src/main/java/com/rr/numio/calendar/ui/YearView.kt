@@ -5,6 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -86,20 +91,26 @@ fun YearView(
             if (year != today.year) Pill("Back to ${today.year}", filled = true) { onYear(today.year) }
         }
 
-        // Twelve months, three per row; the rows share the free height
-        (1..12).chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { m ->
-                    MiniMonth(
-                        month = YearMonth.of(year, m),
-                        today = today,
-                        weekStart = settings.weekStart,
-                        locale = locale,
-                        modifier = Modifier.weight(1f).padding(bottom = 8.dp),
-                        onClick = { onPickMonth(YearMonth.of(year, m)) }
-                    )
+        // Twelve months, three per row. It scrolls, so big phone fonts never cut the numbers off.
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
+            (1..12).chunked(3).forEach { row ->
+                Row(
+                    Modifier.fillMaxWidth().height(IntrinsicSize.Max).padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { m ->
+                        MiniMonth(
+                            month = YearMonth.of(year, m),
+                            today = today,
+                            weekStart = settings.weekStart,
+                            locale = locale,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            onClick = { onPickMonth(YearMonth.of(year, m)) }
+                        )
+                    }
                 }
             }
+            Spacer(Modifier.height(88.dp)) // room for the + button
         }
     }
 }
@@ -161,18 +172,21 @@ private fun MiniMonth(
         cells.chunked(7).forEach { week ->
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { date ->
-                    Box(Modifier.weight(1f).height(15.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).padding(vertical = 1.dp), contentAlignment = Alignment.Center) {
                         if (date != null) {
                             val isToday = date == today
-                            if (isToday) Box(Modifier.size(15.dp).clip(CircleShape).background(NumioYellow))
+                            val ring = NumioYellow
                             Text(
+                                modifier = if (isToday) Modifier.drawBehind { drawCircle(ring, radius = size.maxDimension / 2f + 2f) } else Modifier,
+                                maxLines = 1,
+                                softWrap = false,
                                 date.dayOfMonth.toString(),
                                 color = when {
                                     isToday -> NumioInk
                                     date.dayOfWeek == DayOfWeek.SUNDAY -> NumioSunday
                                     else -> NumioText
                                 },
-                                fontSize = 9.sp,
+                                fontSize = 10.sp,
                                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium
                             )
                         }
