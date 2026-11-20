@@ -12,3 +12,7 @@
 keystore.properties
 *.jks
 *.keystore
+
+# Python cache files
+__pycache__/
+*.pyc
