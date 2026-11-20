@@ -166,9 +166,20 @@ private fun DayPage(
                 val ends = remember(day) {
                     Kollavarsham.starEnds(day).atZone(java.time.ZoneId.systemDefault())
                 }
+                // "Pooruruttathi until 05:26 (UAE)", then the star that takes over: a star that
+                // starts after sunrise and ends before the next one never shows in the month grid.
+                val zone = remember { SecondZone.labelOf(java.time.ZoneId.systemDefault().id) }
                 Text(
                     "${m.starEn} until " + ends.toLocalTime().format(timeFormat) +
-                        (if (ends.toLocalDate() != day) ", " + ends.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM")) else ""),
+                        (if (ends.toLocalDate() != day) ", " + ends.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM")) else "") +
+                        " ($zone)",
+                    color = MalayalamDim,
+                    fontSize = 13.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+                Text(
+                    "then " + Kollavarsham.STARS_EN[(m.star + 1) % 27] + " · " + Kollavarsham.STARS_ML[(m.star + 1) % 27],
                     color = MalayalamDim,
                     fontSize = 13.sp,
                     modifier = Modifier.fillMaxWidth(),

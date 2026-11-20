@@ -215,8 +215,6 @@ fun SettingsScreen(
 
         SectionLabel("GENERAL")
         Card {
-            Text("Theme", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
-            ThemePicker(settings.theme) { onChange(settings.copy(theme = it)) }
             Text("Week starts on", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
             Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(java.time.DayOfWeek.SUNDAY, java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.SATURDAY).forEach { d ->
@@ -299,6 +297,11 @@ fun SettingsScreen(
                 Text("No ads · No tracking · No internet. Everything is worked out and kept on this phone.", color = NumioMuted, fontSize = 13.sp)
             }
             LinkRow("Credits & licences", "Where the data and maths come from, and the app's own licence.") { creditsPage = true }
+        }
+
+        SectionLabel("THEME")
+        Card {
+            ThemePicker(settings.theme) { onChange(settings.copy(theme = it)) }
         }
         Spacer(Modifier.height(8.dp))
     }

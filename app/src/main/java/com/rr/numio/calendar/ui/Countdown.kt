@@ -92,7 +92,7 @@ fun CountdownRow(today: LocalDate, settings: CalendarSettings, onGo: (LocalDate)
                 Spacer(Modifier.size(7.dp))
                 Text(c.name, color = NumioText, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    when (days) { 0L -> " · today 🎉"; 1L -> " · tomorrow"; else -> " · $days days" },
+                    when (days) { 0L -> " · today"; 1L -> " · tomorrow"; else -> " · $days days" },
                     color = if (days <= 1) c.color else NumioMuted,
                     fontSize = 13.sp
                 )

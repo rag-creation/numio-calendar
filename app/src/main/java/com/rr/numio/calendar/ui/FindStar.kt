@@ -137,7 +137,7 @@ fun FindStarDialog(start: LocalDate, today: LocalDate, onAdd: (Event) -> Unit, o
                         val days = ChronoUnit.DAYS.between(today, next)
                         Text(
                             "Next പിറന്നാൾ: " + next.format(dateFormat) +
-                                when (days) { 0L -> " · today 🎉"; 1L -> " · tomorrow"; else -> " · in $days days" },
+                                when (days) { 0L -> " · today"; 1L -> " · tomorrow"; else -> " · in $days days" },
                             color = NumioYellow, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(top = 6.dp)
                         )

@@ -36,7 +36,8 @@ object Reminders {
     private const val CHANNEL = "reminders"
     private const val ACTION_FIRE = "com.rr.numio.calendar.REMIND"
     private const val EXTRA_TITLES = "titles"
-    private const val EXTRA_TEXTS = "texts"
+    private const val EXTRA_DAYS = "days"       // each event's date, as epoch days
+    private const val EXTRA_STARTS = "starts"   // each event's start, minutes after midnight; -1 = all day
 
     /** When the reminder for one occurrence of [e] goes off. */
     fun triggerAt(e: Event): LocalDateTime =
@@ -73,19 +74,22 @@ object Reminders {
     private fun pendingIntent(context: Context, due: List<Event>): PendingIntent {
         val intent = Intent(context, ReminderReceiver::class.java).setAction(ACTION_FIRE)
             .putExtra(EXTRA_TITLES, due.map { it.title }.toTypedArray())
-            .putExtra(EXTRA_TEXTS, due.map { describe(it) }.toTypedArray())
+            // Only the facts go in: "Today"/"Tomorrow" is worked out when the reminder rings, not now
+            .putExtra(EXTRA_DAYS, due.map { it.date.toEpochDay() }.toLongArray())
+            .putExtra(EXTRA_STARTS, due.map { e -> e.start?.let { it.hour * 60 + it.minute } ?: -1 }.toIntArray())
         return PendingIntent.getBroadcast(
             context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
 
-    private fun describe(e: Event): String {
-        val day = when (e.date) {
-            LocalDate.now() -> "Today"
-            LocalDate.now().plusDays(1) -> "Tomorrow"
-            else -> e.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    /** "Today · 9:00 AM", "Tomorrow · all day", "20 Nov 2026 · all day", seen from [now]. */
+    fun describe(date: LocalDate, start: LocalTime?, now: LocalDate = LocalDate.now()): String {
+        val day = when (date) {
+            now -> "Today"
+            now.plusDays(1) -> "Tomorrow"
+            else -> date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
         }
-        val time = e.start?.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)) ?: "all day"
+        val time = start?.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)) ?: "all day"
         return "$day · $time"
     }
 
@@ -95,7 +99,11 @@ object Reminders {
 
     internal fun fire(context: Context, intent: Intent) {
         val titles = intent.getStringArrayExtra(EXTRA_TITLES) ?: return
-        val texts = intent.getStringArrayExtra(EXTRA_TEXTS) ?: return
+        val days = intent.getLongArrayExtra(EXTRA_DAYS) ?: return
+        val starts = intent.getIntArrayExtra(EXTRA_STARTS) ?: return
+        val texts = days.mapIndexed { i, d ->
+            describe(LocalDate.ofEpochDay(d), starts.getOrNull(i)?.takeIf { it >= 0 }?.let { LocalTime.of(it / 60, it % 60) })
+        }
         if (!canNotify(context)) return
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL, "Reminders", NotificationManager.IMPORTANCE_HIGH))
