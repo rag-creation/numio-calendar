@@ -26,8 +26,8 @@ And for people who live by more than one calendar, it can show the Malayalam (Ko
 dates under each day, with their festivals. These are optional and off with one switch; without them
 it is simply a good plain calendar.
 
-> **Status:** in testing. Test builds are on the [Releases](../../releases) page; the first stable
-> release and an F-Droid listing are coming.
+> **Status:** 1.0.0, the first stable release, is on the [Releases](../../releases) page.
+> An F-Droid listing is coming.
 
 ## For everyone
 

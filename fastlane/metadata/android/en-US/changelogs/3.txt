@@ -1,0 +1,9 @@
+First stable release.
+
+- Month and day views, year view from the month title
+- Events with reminders, repeats and colours
+- Public holidays for 249 countries, built in
+- Optional Malayalam (Kollavarsham) and Hijri calendars, with stars, Find my star and Kerala and Islamic festivals
+- Your phone's calendars, read-only
+- Backup and restore to a .numio file
+- No internet permission: nothing leaves your phone
