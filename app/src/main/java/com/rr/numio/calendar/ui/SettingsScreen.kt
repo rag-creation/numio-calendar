@@ -293,6 +293,7 @@ fun SettingsScreen(
         SectionLabel("ABOUT")
         Card {
             Column(Modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                OfficialWordmark(dark = Palette.dark, modifier = Modifier.padding(bottom = 8.dp).height(26.dp))
                 Text("Calendar by Numio" + if (version.isNotEmpty()) " · $version" else "", color = NumioText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Text("No ads · No tracking · No internet. Everything is worked out and kept on this phone.", color = NumioMuted, fontSize = 13.sp)
             }
